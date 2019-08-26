@@ -1,0 +1,48 @@
+{
+  "training_data": "/media/sl/Data/workspace/IJCAI2019/BootEA_DBP_WD_100K/",
+  "output": "/media/sl/Data/workspace/IJCAI2019/output/results/",
+  "word2vec_path": "/media/sl/Data/workspace/IJCAI2019/datasets/wiki-news-300d-1M.vec",
+  "dataset_division": "631/",
+
+  "alignment_module": "swapping",
+
+  "encoder_epoch": 100,
+  "encoder_active": "thah",
+  "encoder_normalize": true,
+  "retrain_literal_embeds": true,
+  "literal_normalize": true,
+
+  "dim": 75,
+
+  "learning_rate": 0.001,
+  "optimizer": "Adagrad",
+  "max_epoch": 200,
+  "shared_learning_max_epoch": 200,
+  "batch_size": 5000,
+  "entity_batch_size": 5000,
+  "attribute_batch_size": 5000,
+
+  "neg_triple_num": 10,
+  "neg_sampling":"truncated",
+  "truncated_epsilon": 0.98,
+  "truncated_freq": 20,
+
+  "batch_threads_num": 4,
+  "test_threads_num": 8,
+
+  "start_valid": 50,
+  "eval_freq": 20,
+  "stop_metric": "mrr",
+  "top_k": [1, 5, 10, 50],
+  "is_save": true,
+  "orthogonal_weight": 2,
+  "cv_name_weight": 1,
+  "cv_weight": 1,
+
+  "start_predicate_soft_alignment": 10,
+  "predicate_soft_sim": 0.80,
+  "predicate_init_sim": 0.90,
+  "relation_learning_rate": 0.005,
+  "ITC_learning_rate": 0.004
+
+}
