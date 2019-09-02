@@ -1,8 +1,6 @@
 # MultiKE
 Source code and datasets for IJCAI-2019 paper "_[Multi-view Knowledge Graph Embedding for Entity Alignment](https://www.ijcai.org/proceedings/2019/0754.pdf)_".
 
-> **Note that**, the current version of MultiKE is implemented based on OpenEA (a tookit for embedding-based entity alignment, to be released). Thus, you may get errors due to the lack of dependency when directly running this code. We are still working on developing a standalone version. 
-
 ## Dataset
 We used two datasets, namely DBP-WD and DBP-YG, which are based on DWY100K proposed in [BootEA](https://www.ijcai.org/proceedings/2018/0611.pdf). 
 
@@ -27,7 +25,6 @@ The raw datasets of DWY100K can also be found [here](https://github.com/nju-webs
 * Python 3
 * Tensorflow 1.x 
 * Numpy
-* OpenEA (coming soon)
 
 ## Run
 

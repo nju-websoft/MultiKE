@@ -1,13 +1,8 @@
 import math
-import time
 import multiprocessing as mp
-import tensorflow as tf
 
-import openea.modules.train.batch as bat
-from openea.modules.utils.util import generate_out_folder
-from openea.modules.utils.util import load_session
-from openea.modules.utils.util import task_divide
-from openea.modules.args.args_hander import load_args
+import base.batch as bat
+from utils import *
 from data_model import DataModel
 from MultiKE_model import MultiKE
 from predicate_alignment import PredicateAlignModel
@@ -58,22 +53,21 @@ class MultiKE_CV(MultiKE):
                                        self.predicate_align_model.sup_attribute_alignment_triples2
         neighbors1, neighbors2 = None, None
         entity_list = self.kgs.kg1.entities_list + self.kgs.kg2.entities_list
-
+        test(self, embed_choice='nv')
         for i in range(1, self.args.max_epoch + 1):
             print('epoch {}:'.format(i))
             self.train_relation_view_1epo(i, relation_triple_steps, relation_step_tasks, relation_batch_queue,
                                           neighbors1, neighbors2)
-            self.train_common_space_learning_1epo(i, entity_list)
             self.train_cross_kg_entity_inference_relation_view_1epo(i, cross_kg_relation_triples)
             if i > self.args.start_predicate_soft_alignment:
                 self.train_cross_kg_relation_inference_1epo(i, cross_kg_relation_inference)
 
             self.train_attribute_view_1epo(i, attribute_triple_steps, attribute_step_tasks, attribute_batch_queue,
                                            neighbors1, neighbors2)
-            self.train_common_space_learning_1epo(i, entity_list)
             self.train_cross_kg_entity_inference_attribute_view_1epo(i, cross_kg_entity_inference_in_attribute_triples)
             if i > self.args.start_predicate_soft_alignment:
                 self.train_cross_kg_attribute_inference_1epo(i, cross_kg_attribute_inference)
+            self.train_common_space_learning_1epo(i, entity_list)
 
             if i >= self.args.start_valid and i % self.args.eval_freq == 0:
                 valid(self, embed_choice='rv')

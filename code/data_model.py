@@ -1,14 +1,26 @@
-from openea.modules.load.kgs import read_kgs_from_folder
+from base.kgs import read_kgs_from_folder
 from literal_encoder import *
 from utils import *
-from openea.modules.utils.util import *
-from openea.modules.load.read import generate_sup_attribute_triples
 from sklearn import preprocessing
 
 
 SPLIT = '\t'
 LITERAL_EMBEDDINGS_FILE = 'literal_vectors.npy'
 LITERAL_FILE = 'literals.txt'
+
+
+def generate_sup_attribute_triples(sup_links, av_dict1, av_dict2):
+    def generate_sup_attribute_triples_one_link(e1, e2, av_dict):
+        new_triples = set()
+        for a, v in av_dict.get(e1, set()):
+            new_triples.add((e2, a, v))
+        return new_triples
+    new_triples1, new_triples2 = set(), set()
+    for ent1, ent2 in sup_links:
+        new_triples1 |= (generate_sup_attribute_triples_one_link(ent1, ent2, av_dict1))
+        new_triples2 |= (generate_sup_attribute_triples_one_link(ent2, ent1, av_dict2))
+    print("supervised attribute triples: {}, {}".format(len(new_triples1), len(new_triples2)))
+    return new_triples1, new_triples2
 
 
 def save_literal_vectors(folder, literal_list, literal_vectors):

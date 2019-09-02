@@ -68,7 +68,7 @@ def init_predicate_alignment(predicate_local_name_dict_1, predicate_local_name_d
             predicate_latent_match_pairs_similarity_dict[(p1, p2)] = sim_dict_1[p1]
             if sim_dict_1[p1] > predicate_init_sim:
                 predicate_match_pairs_set.add((p1, p2, sim_dict_1[p1]))
-                print(p1, p2, sim_dict_1[p1], sim_dict_2[p2])
+                # print(p1, p2, sim_dict_1[p1], sim_dict_2[p2])
     return predicate_match_pairs_set, predicate_latent_match_pairs_similarity_dict
 
 

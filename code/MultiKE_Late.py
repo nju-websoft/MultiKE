@@ -1,16 +1,11 @@
 import math
-import time
 import gc
 import multiprocessing as mp
-import tensorflow as tf
-import numpy as np
 from sklearn import preprocessing
 
-import openea.modules.train.batch as bat
-import openea.modules.finding.evaluation as eva
-from openea.modules.utils.util import load_session
-from openea.modules.utils.util import task_divide
-from openea.modules.args.args_hander import load_args
+import base.batch as bat
+from utils import *
+import base.evaluation as eva
 from data_model import DataModel
 from MultiKE_model import MultiKE
 from predicate_alignment import PredicateAlignModel

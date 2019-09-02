@@ -1,9 +1,8 @@
-import numpy as np
 import gc
 from sklearn import preprocessing
 
-from openea.modules.base.optimizers import generate_optimizer
-from openea.modules.utils.util import *
+from base.optimizers import generate_optimizer
+from utils import *
 
 
 def sigmoid(x):

@@ -30,8 +30,8 @@
   "batch_threads_num": 4,
   "test_threads_num": 8,
 
-  "start_valid": 50,
-  "eval_freq": 20,
+  "start_valid": 100,
+  "eval_freq": 10,
   "stop_metric": "mrr",
   "top_k": [1, 5, 10, 50],
   "is_save": true,
@@ -40,7 +40,7 @@
   "cv_weight": 1,
 
   "start_predicate_soft_alignment": 10,
-  "predicate_soft_sim": 0.80,
+  "predicate_soft_sim": 0.85,
   "predicate_init_sim": 0.90,
   "relation_learning_rate": 0.005,
   "ITC_learning_rate": 0.004

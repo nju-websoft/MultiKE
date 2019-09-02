@@ -18,6 +18,7 @@ echo "log folder: " ${log_folder}
 echo "training data: " ${data}
 
 data_split=(${data//// })
+echo ${data_split}
 log_file=${log_folder}${data_split[-1]}
 
 

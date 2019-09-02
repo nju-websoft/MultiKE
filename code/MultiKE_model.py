@@ -1,20 +1,34 @@
 import math
 import random
-import time
 import multiprocessing as mp
-import tensorflow as tf
-import numpy as np
 
-import openea.modules.train.batch as bat
-from openea.modules.utils.util import generate_out_folder
-from openea.modules.base.initializers import xavier_init
-from openea.modules.base.optimizers import generate_optimizer
+import base.batch as bat
+from utils import *
+from base.initializers import xavier_init
 from attr_batch import generate_attribute_triple_batch_queue
 from utils import save_embeddings
 
-from data_model import DataModel
 from losses import relation_logistic_loss, attribute_logistic_loss, relation_logistic_loss_wo_negs, \
     attribute_logistic_loss_wo_negs, space_mapping_loss, alignment_loss, logistic_loss_wo_negs, orthogonal_loss
+
+
+def get_optimizer(opt, learning_rate):
+    if opt == 'Adagrad':
+        optimizer = tf.train.AdagradOptimizer(learning_rate)
+    elif opt == 'Adadelta':
+        # To match the exact form in the original paper use 1.0.
+        optimizer = tf.train.AdadeltaOptimizer(learning_rate)
+    elif opt == 'Adam':
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+    else:  # opt == 'SGD'
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+    return optimizer
+
+
+def generate_optimizer(loss, learning_rate, var_list=None, opt='SGD'):
+    optimizer = get_optimizer(opt, learning_rate)
+    grads_and_vars = optimizer.compute_gradients(loss, var_list=var_list)
+    return optimizer.apply_gradients(grads_and_vars)
 
 
 def conv(attr_hs, attr_as, attr_vs, dim, feature_map_size=2, kernel_size=[2, 4], activation=tf.nn.tanh, layer_num=2):
@@ -218,7 +232,7 @@ class MultiKE:
             ca_hs = tf.nn.embedding_lookup(self.av_ent_embeds, self.cn_hs)
         with tf.name_scope('cross_name_view_loss'):
             self.cross_name_loss = self.args.cv_name_weight * alignment_loss(final_cn_phs, cn_hs_names)
-            self.cross_name_loss = alignment_loss(final_cn_phs, cr_hs)
+            self.cross_name_loss += alignment_loss(final_cn_phs, cr_hs)
             self.cross_name_loss += alignment_loss(final_cn_phs, ca_hs)
             self.cross_name_optimizer = generate_optimizer(self.args.cv_weight * self.cross_name_loss,
                                                            self.args.ITC_learning_rate,

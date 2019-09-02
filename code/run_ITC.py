@@ -1,6 +1,6 @@
 import argparse
 
-from openea.modules.args.args_hander import load_args
+from utils import *
 from data_model import DataModel
 from predicate_alignment import PredicateAlignModel
 from MultiKE_CSL import MultiKE_CV

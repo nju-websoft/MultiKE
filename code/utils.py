@@ -2,6 +2,59 @@ import numpy as np
 from numpy.linalg import norm
 from gensim.models.word2vec import Word2Vec
 import os
+import time
+import tensorflow as tf
+import json
+
+
+def load_args(file_path):
+    with open(file_path, 'r') as f:
+        args_dict = json.load(f)
+        f.close()
+    print("load arguments:", args_dict)
+    args = ARGs(args_dict)
+    return args
+
+
+class ARGs:
+    def __init__(self, dic):
+        for k, v in dic.items():
+            setattr(self, k, v)
+
+
+def load_session():
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    return tf.Session(config=config)
+
+
+def merge_dic(dic1, dic2):
+    return {**dic1, **dic2}
+
+
+def task_divide(idx, n):
+    total = len(idx)
+    if n <= 0 or 0 == total:
+        return [idx]
+    if n > total:
+        return [idx]
+    elif n == total:
+        return [[i] for i in idx]
+    else:
+        j = total // n
+        tasks = []
+        for i in range(0, (n - 1) * j, j):
+            tasks.append(idx[i:i + j])
+        tasks.append(idx[(n - 1) * j:])
+        return tasks
+
+
+def generate_out_folder(out_folder, training_data_path, div_path, method_name):
+    params = training_data_path.strip('/').split('/')
+    path = params[-1]
+    folder = out_folder + method_name + '/' + path + "/" + div_path + str(time.strftime("%Y%m%d%H%M%S")) + "/"
+    print("results output folder:", folder)
+    return folder
 
 
 def dict2file(file, dic):
@@ -71,8 +124,10 @@ def read_local_name_file(file_path, entities_set):
             assert len(line) == 2
             if line[1] == '':
                 cnt += 1
-            ln = line[1].replace('_', ' ')
-            entity_local_name[line[0]] = ln
+            ln = line[1]
+            if ln.endswith(')'):
+                ln = ln.split('(')[0]
+            entity_local_name[line[0]] = ln.replace('_', ' ')
     file.close()
 
     for e in entities_set:
