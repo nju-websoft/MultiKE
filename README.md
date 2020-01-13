@@ -7,8 +7,8 @@ We used two datasets, namely DBP-WD and DBP-YG, which are based on DWY100K propo
 ### DBP-WD and DBP-YG
 In "data/BootEA_datasets.zip", we give the full data of the two datasets that we used. Each dataset has the following files:
 
-* ent_links: all the entity links without traning/test/valid splits;
-* 631: entity links with traning/test/valid splits, contains three files, namely train_links, test_links and valid_links;
+* ent_links: all the entity links without training/test/valid splits;
+* 631: entity links with training/test/valid splits, contains three files, namely train_links, test_links and valid_links;
 * rel_triples_1: relation triples in the source KG, list of triples like (h \t r \t t);
 * rel_triples_2: relation triples in the target KG;
 * attr_triples_1: attribute triples in the source KG;
