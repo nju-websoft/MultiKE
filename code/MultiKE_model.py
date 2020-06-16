@@ -282,7 +282,7 @@ class MultiKE:
         rv_ent_embeds = self.rv_ent_embeds.eval(session=self.session)
         av_ent_embeds = self.av_ent_embeds.eval(session=self.session)
         rel_embeds = self.rel_embeds.eval(session=self.session)
-        att_embeds = self.rel_embeds.eval(session=self.session)
+        att_embeds = self.attr_embeds.eval(session=self.session)
         save_embeddings(self.out_folder, self.kgs, ent_embeds, nv_ent_embeds, rv_ent_embeds, av_ent_embeds,
                         rel_embeds, att_embeds)
 
