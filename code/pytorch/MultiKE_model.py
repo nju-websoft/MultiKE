@@ -87,24 +87,31 @@ class MultiKE(nn.Module):
         return rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts
 
     def attribute_view(self, attr_pos_hs, attr_pos_as, attr_pos_vs):
-        attr_phs = torch.index_select(self.av_ent_embeds, dem=0, index=attr_pos_hs)
-        attr_pas = torch.index_select(self.attr_embeds, dem=0, index=attr_pos_as)
-        attr_pvs = torch.index_select(self.literal_embeds, dem=0, index=attr_pos_vs)
+        # Question: Why not l2_normalize? like in `relation_view`
+        attr_phs = torch.index_select(self.av_ent_embeds, dim=0, index=attr_pos_hs)
+        attr_pas = torch.index_select(self.attr_embeds, dim=0, index=attr_pos_as)
+        attr_pvs = torch.index_select(self.literal_embeds, dim=0, index=attr_pos_vs)
         pos_score = self.attr_conv(attr_phs, attr_pas, attr_pvs)
         return pos_score
 
     def cross_kg_relation_triple(self):
-        pass
+        ckge_rel_phs = torch.index_select(self.rv_ent_embeds, dim=0, index=self.ckge_rel_pos_hs)
+        ckge_rel_prs = torch.index_select(self.rel_embeds, dim=0, index=self.ckge_rel_pos_rs)
+        ckge_rel_pts = torch.index_select(self.rv_ent_embeds, dim=0, index=self.ckge_rel_pos_ts)
+        return (ckge_rel_phs, ckge_rel_prs, ckge_rel_pts)
 
     def cross_kg_attribute_triple(self, ckge_attr_pos_hs, ckge_attr_pos_as, ckge_attr_pos_vs):
-        ckge_attr_phs = torch.index_select(self.av_ent_embeds, dim = 0, index=ckge_attr_pos_hs)
-        ckge_attr_pas = torch.index_select(self.attr_embeds, dim = 0, index=ckge_attr_pos_as)
-        ckge_attr_pvs = torch.index_select(self.literal_embeds, dim = 0, index=ckge_attr_pos_vs)
+        ckge_attr_phs = torch.index_select(self.av_ent_embeds, dim=0, index=ckge_attr_pos_hs)
+        ckge_attr_pas = torch.index_select(self.attr_embeds, dim=0, index=ckge_attr_pos_as)
+        ckge_attr_pvs = torch.index_select(self.literal_embeds, dim=0, index=ckge_attr_pos_vs)
         pos_score = self.attr_triple_conv(ckge_attr_phs, ckge_attr_pas, ckge_attr_pvs)
         return pos_score
 
     def cross_kg_relation_reference(self):
-        pass
+        ckgp_rel_phs = torch.index_select(self.rv_ent_embeds, dim=0, index=self.ckgp_rel_pos_hs)
+        ckgp_rel_prs = torch.index_select(self.rel_embeds, dim=0, index=self.ckgp_rel_pos_rs)
+        ckgp_rel_pts = torch.index_select(self.rv_ent_embeds, dim=0, index=self.ckgp_rel_pos_ts)
+        return ckgp_rel_phs, ckgp_rel_prs, ckgp_rel_pts
 
     def cross_kg_attribute_reference(self, ckga_attr_pos_hs, ckga_attr_pos_as, ckga_attr_pos_vs):
         ckga_attr_phs = torch.index_select(self.av_ent_embeds, dim=0, index=ckga_attr_pos_hs)
@@ -114,11 +121,19 @@ class MultiKE(nn.Module):
         return pos_score
 
     def cross_name_view(self):
-        pass
-
+        final_cn_phs = torch.index_select(self.ent_embeds, dim=0, index=self.cn_hs)
+        cn_hs_names = torch.index_select(self.name_embeds, dim=0, index=self.cn_hs)
+        cr_hs = torch.index_select(self.rv_ent_embeds, dim=0, index=self.cn_hs)
+        ca_hs = torch.index_select(self.av_ent_embeds, dim=0, index=self.cn_hs)
+        return (final_cn_phs, cn_hs_names, cr_hs, ca_hs)
 
     def multi_view(self):
-        pass
+        final_ents = torch.index_select(self.ent_embeds, dim=0, index=self.entities)
+        nv_ents = torch.index_select(self.name_embeds, dim=0, index=self.entities)
+        rv_ents = torch.index_select(self.rv_ent_embeds, dim=0, index=self.entities)
+        av_ents = torch.index_select(self.av_ent_embeds, dim=0, index=self.entities)
+
+        return final_ents, nv_ents, rv_ents, av_ents
 
     @staticmethod
     def valid(model, embed_choice='avg', w=(1, 1, 1)):
