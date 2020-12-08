@@ -79,17 +79,17 @@ class MultiKE(nn.Module):
         rv_ent_embeds = self.l2_normalize(self.rv_ent_embeds)
         rel_embeds = self.l2_normalize(self.rel_embeds)
         rel_phs = torch.index_select(rv_ent_embeds, dim=0, index=rel_pos_hs)
-        rel_prs = tf.nn.embedding_lookup(rel_embeds, rel_pos_rs)
-        rel_pts = tf.nn.embedding_lookup(rv_ent_embeds, rel_pos_ts)
-        rel_nhs = tf.nn.embedding_lookup(rv_ent_embeds, rel_neg_hs)
-        rel_nrs = tf.nn.embedding_lookup(rel_embeds, rel_neg_rs)
-        rel_nts = tf.nn.embedding_lookup(rv_ent_embeds, rel_neg_ts)
+        rel_prs = torch.index_select(rel_embeds, dim=0, index=rel_pos_rs)
+        rel_pts = torch.index_select(rv_ent_embeds, dim=0, index=rel_pos_ts)
+        rel_nhs = torch.index_select(rv_ent_embeds, dim=0, index=rel_neg_hs)
+        rel_nrs = torch.index_select(rel_embeds, dim=0, index=rel_neg_rs)
+        rel_nts = torch.index_select(rv_ent_embeds, dim=0, index=rel_neg_ts)
         return rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts
 
     def attribute_view(self, attr_pos_hs, attr_pos_as, attr_pos_vs):
-        attr_phs = tf.nn.embedding_lookup(self.av_ent_embeds, attr_pos_hs)
-        attr_pas = tf.nn.embedding_lookup(self.attr_embeds, attr_pos_as)
-        attr_pvs = tf.nn.embedding_lookup(self.literal_embeds, attr_pos_vs)
+        attr_phs = torch.index_select(self.av_ent_embeds, dem=0, index=attr_pos_hs)
+        attr_pas = torch.index_select(self.attr_embeds, dem=0, index=attr_pos_as)
+        attr_pvs = torch.index_select(self.literal_embeds, dem=0, index=attr_pos_vs)
         pos_score = self.attr_conv(attr_phs, attr_pas, attr_pvs)
         return pos_score
 
@@ -97,9 +97,9 @@ class MultiKE(nn.Module):
         pass
 
     def cross_kg_attribute_triple(self, ckge_attr_pos_hs, ckge_attr_pos_as, ckge_attr_pos_vs):
-        ckge_attr_phs = tf.nn.embedding_lookup(self.av_ent_embeds, ckge_attr_pos_hs)
-        ckge_attr_pas = tf.nn.embedding_lookup(self.attr_embeds, ckge_attr_pos_as)
-        ckge_attr_pvs = tf.nn.embedding_lookup(self.literal_embeds, ckge_attr_pos_vs)
+        ckge_attr_phs = torch.index_select(self.av_ent_embeds, dim = 0, index=ckge_attr_pos_hs)
+        ckge_attr_pas = torch.index_select(self.attr_embeds, dim = 0, index=ckge_attr_pos_as)
+        ckge_attr_pvs = torch.index_select(self.literal_embeds, dim = 0, index=ckge_attr_pos_vs)
         pos_score = self.attr_triple_conv(ckge_attr_phs, ckge_attr_pas, ckge_attr_pvs)
         return pos_score
 
@@ -107,14 +107,15 @@ class MultiKE(nn.Module):
         pass
 
     def cross_kg_attribute_reference(self, ckga_attr_pos_hs, ckga_attr_pos_as, ckga_attr_pos_vs):
-        ckga_attr_phs = tf.nn.embedding_lookup(self.av_ent_embeds, ckga_attr_pos_hs)
-        ckga_attr_pas = tf.nn.embedding_lookup(self.attr_embeds, ckga_attr_pos_as)
-        ckga_attr_pvs = tf.nn.embedding_lookup(self.literal_embeds, ckga_attr_pos_vs)
-        pos_score = self.attr_ref_conv(ckga_attr_phs, ckga_attr_pas, ckga_attr_pvs)
+        ckga_attr_phs = torch.index_select(self.av_ent_embeds, dim=0, index=ckga_attr_pos_hs)
+        ckga_attr_pas = torch.index_select(self.attr_embeds, dim=0, index=ckga_attr_pos_as)
+        ckga_attr_pvs = torch.index_select(self.literal_embeds, dim=0, index=ckga_attr_pos_vs)
+        pos_score = self.attr_ref_conv(ckga_attr_phs, ckga_attr_pas, index=ckga_attr_pvs)
         return pos_score
 
     def cross_name_view(self):
         pass
+
 
     def multi_view(self):
         pass
