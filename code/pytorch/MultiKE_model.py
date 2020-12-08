@@ -4,7 +4,8 @@ import numpy as np
 import tensorflow as tf
 
 from pytorch.utils import L2Normalize
-
+import base.evaluation as eva
+import gc
 
 class Conv(nn.Module):
 
@@ -137,11 +138,53 @@ class MultiKE(nn.Module):
 
     @staticmethod
     def valid(model, embed_choice='avg', w=(1, 1, 1)):
-        pass
+        if embed_choice == 'nv':
+            ent_embeds = model.name_embeds
+        elif embed_choice == 'rv':
+            ent_embeds = model.rv_ent_embeds
+        elif embed_choice == 'av':
+            ent_embeds = model.av_ent_embeds
+        elif embed_choice == 'final':
+            ent_embeds = model.ent_embeds
+        elif embed_choice == 'avg':
+            ent_embeds = w[0] * model.name_embeds + \
+                         w[1] * model.rv_ent_embeds + \
+                         w[2] * model.av_ent_embeds
+        else:  # 'final'
+            ent_embeds = model.ent_embeds
+        print(embed_choice, 'valid results:')
+        embeds1 = ent_embeds[model.kgs.valid_entities1, ]
+        embeds2 = ent_embeds[model.kgs.valid_entities2 + model.kgs.test_entities2, ]
+        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
+                                     normalize=True)
+        del embeds1, embeds2
+        gc.collect()
+        return mrr_12
 
     @staticmethod
     def test(model, embed_choice='avg', w=(1, 1, 1)):
-        pass
+        if embed_choice == 'nv':
+            ent_embeds = model.name_embeds
+        elif embed_choice == 'rv':
+            ent_embeds = model.rv_ent_embeds
+        elif embed_choice == 'av':
+            ent_embeds = model.av_ent_embeds
+        elif embed_choice == 'final':
+            ent_embeds = model.ent_embeds
+        elif embed_choice == 'avg':
+            ent_embeds = w[0] * model.name_embeds + \
+                        w[1] * model.rv_ent_embeds + \
+                        w[2] * model.av_ent_embeds
+        else:  # wavg
+            ent_embeds = model.ent_embeds
+        print(embed_choice, 'test results:')
+        embeds1 = ent_embeds[model.kgs.test_entities1, ]
+        embeds2 = ent_embeds[model.kgs.test_entities2, ]
+        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
+                                     normalize=True)
+        del embeds1, embeds2
+        gc.collect()
+        return mrr_12
 
 
 if __name__ == '__main__':
