@@ -187,17 +187,17 @@ class MultiKENet(nn.Module):
         if embed_choice == 'nv':
             ent_embeds = model.name_embeds
         elif embed_choice == 'rv':
-            ent_embeds = model.rv_ent_embeds
+            ent_embeds = l2_normalize(model.rv_ent_embeds)
         elif embed_choice == 'av':
-            ent_embeds = model.av_ent_embeds
+            ent_embeds = l2_normalize(model.av_ent_embeds)
         elif embed_choice == 'final':
-            ent_embeds = model.ent_embeds
+            ent_embeds = l2_normalize(model.ent_embeds)
         elif embed_choice == 'avg':
             ent_embeds = w[0] * model.name_embeds + \
-                         w[1] * model.rv_ent_embeds + \
-                         w[2] * model.av_ent_embeds
+                         w[1] * l2_normalize(model.rv_ent_embeds) + \
+                         w[2] * l2_normalize(model.av_ent_embeds)
         else:  # 'final'
-            ent_embeds = model.ent_embeds
+            ent_embeds = l2_normalize(model.ent_embeds)
         print(embed_choice, 'valid results:')
         embeds1 = ent_embeds[kgs.valid_entities1, ]
         embeds2 = ent_embeds[kgs.valid_entities2 + kgs.test_entities2, ]
@@ -212,17 +212,17 @@ class MultiKENet(nn.Module):
         if embed_choice == 'nv':
             ent_embeds = model.name_embeds
         elif embed_choice == 'rv':
-            ent_embeds = model.rv_ent_embeds
+            ent_embeds = l2_normalize(model.rv_ent_embeds)
         elif embed_choice == 'av':
-            ent_embeds = model.av_ent_embeds
+            ent_embeds = l2_normalize(model.av_ent_embeds)
         elif embed_choice == 'final':
-            ent_embeds = model.ent_embeds
+            ent_embeds = l2_normalize(model.ent_embeds)
         elif embed_choice == 'avg':
             ent_embeds = w[0] * model.name_embeds + \
-                        w[1] * model.rv_ent_embeds + \
-                        w[2] * model.av_ent_embeds
-        else:  # wavg
-            ent_embeds = model.ent_embeds
+                         w[1] * l2_normalize(model.rv_ent_embeds) + \
+                         w[2] * l2_normalize(model.av_ent_embeds)
+        else:  # 'final'
+            ent_embeds = l2_normalize(model.ent_embeds)
         print(embed_choice, 'test results:')
         embeds1 = ent_embeds[kgs.test_entities1, ]
         embeds2 = ent_embeds[kgs.test_entities2, ]
