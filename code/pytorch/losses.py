@@ -110,7 +110,7 @@ def cross_name_view_loss(final_cn_phs, cn_hs_names, cr_hs, ca_hs, cv_name_weight
     return loss
 
 
-def mapping_loss(nv_ents, final_ents, nv_mapping, rv_ents, rv_mapping, av_ents, av_mapping, eye, orthogonal_weight):
+def mapping_loss(final_ents, nv_ents, rv_ents, av_ents, nv_mapping, rv_mapping, av_mapping, eye, orthogonal_weight):
     nv_space_mapping_loss = space_mapping_loss(nv_ents, final_ents, nv_mapping, eye, orthogonal_weight)
     rv_space_mapping_loss = space_mapping_loss(rv_ents, final_ents, rv_mapping, eye, orthogonal_weight)
     av_space_mapping_loss = space_mapping_loss(av_ents, final_ents, av_mapping, eye, orthogonal_weight)
@@ -120,8 +120,9 @@ def mapping_loss(nv_ents, final_ents, nv_mapping, rv_ents, rv_mapping, av_ents, 
 
 class MultiKELoss(nn.Module):
 
-    def __init__(self, cv_name_weight, cv_weight, orthogonal_weight):
+    def __init__(self, eye, cv_name_weight, cv_weight, orthogonal_weight):
         super(MultiKELoss, self).__init__()
+        self.eye = eye
         self.cv_name_weight = cv_name_weight
         self.cv_weight = cv_weight
         self.orthogonal_weight = orthogonal_weight

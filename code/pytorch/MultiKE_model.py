@@ -1,10 +1,11 @@
+import gc
+
 import torch
 import torch.nn as nn
 import numpy as np
 
 from pytorch.utils import l2_normalize
-import base.evaluation as eva
-import gc
+from base.evaluation import valid
 
 
 class Conv(nn.Module):
@@ -131,7 +132,7 @@ class MultiKENet(nn.Module):
         ckge_rel_phs = torch.index_select(rv_ent_embeds, dim=0, index=self.ckge_rel_pos_hs)
         ckge_rel_prs = torch.index_select(rel_embeds, dim=0, index=self.ckge_rel_pos_rs)
         ckge_rel_pts = torch.index_select(rv_ent_embeds, dim=0, index=self.ckge_rel_pos_ts)
-        return (ckge_rel_phs, ckge_rel_prs, ckge_rel_pts)
+        return ckge_rel_phs, ckge_rel_prs, ckge_rel_pts
 
     def cross_kg_attribute_triple(self, ckge_attr_pos_hs, ckge_attr_pos_as, ckge_attr_pos_vs):
         av_ent_embeds = l2_normalize(self.av_ent_embeds)
@@ -165,7 +166,7 @@ class MultiKENet(nn.Module):
         cn_hs_names = torch.index_select(self.name_embeds, dim=0, index=self.cn_hs)
         cr_hs = torch.index_select(rv_ent_embeds, dim=0, index=self.cn_hs)
         ca_hs = torch.index_select(av_ent_embeds, dim=0, index=self.cn_hs)
-        return (final_cn_phs, cn_hs_names, cr_hs, ca_hs)
+        return final_cn_phs, cn_hs_names, cr_hs, ca_hs
 
     def multi_view(self):
         ent_embeds = l2_normalize(self.ent_embeds)
@@ -175,14 +176,13 @@ class MultiKENet(nn.Module):
         nv_ents = torch.index_select(self.name_embeds, dim=0, index=self.entities)
         rv_ents = torch.index_select(rv_ent_embeds, dim=0, index=self.entities)
         av_ents = torch.index_select(av_ent_embeds, dim=0, index=self.entities)
-
         return final_ents, nv_ents, rv_ents, av_ents
 
     def forward(self, inputs, view):
         return self.views_cfg[view](*inputs)
 
     @staticmethod
-    def valid(model, embed_choice='avg', w=(1, 1, 1)):
+    def valid(model, kgs, embed_choice='avg', w=(1, 1, 1)):
         # TODO: Add l2_normalize
         if embed_choice == 'nv':
             ent_embeds = model.name_embeds
@@ -199,10 +199,9 @@ class MultiKENet(nn.Module):
         else:  # 'final'
             ent_embeds = model.ent_embeds
         print(embed_choice, 'valid results:')
-        embeds1 = ent_embeds[model.kgs.valid_entities1, ]
-        embeds2 = ent_embeds[model.kgs.valid_entities2 + model.kgs.test_entities2, ]
-        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
-                                     normalize=True)
+        embeds1 = ent_embeds[kgs.valid_entities1, ]
+        embeds2 = ent_embeds[kgs.valid_entities2 + kgs.test_entities2, ]
+        _, mrr_12 = valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num, normalize=True)
         del embeds1, embeds2
         gc.collect()
         return mrr_12
@@ -225,10 +224,9 @@ class MultiKENet(nn.Module):
         else:  # wavg
             ent_embeds = model.ent_embeds
         print(embed_choice, 'test results:')
-        embeds1 = ent_embeds[model.kgs.test_entities1, ]
-        embeds2 = ent_embeds[model.kgs.test_entities2, ]
-        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
-                                     normalize=True)
+        embeds1 = ent_embeds[kgs.test_entities1, ]
+        embeds2 = ent_embeds[kgs.test_entities2, ]
+        _, mrr_12 = valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num, normalize=True)
         del embeds1, embeds2
         gc.collect()
         return mrr_12
