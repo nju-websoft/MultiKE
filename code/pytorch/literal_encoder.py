@@ -8,7 +8,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn import preprocessing
 
 from base.kgs import read_kgs_from_folder
-from pytorch.utils import L2Normalize, generate_unlisted_word2vec, get_optimizer
+from pytorch.utils import l2_normalize, generate_unlisted_word2vec, get_optimizer
 from pytorch.utils import load_args, read_local_name, clear_attribute_triples, read_word2vec
 
 
@@ -16,13 +16,14 @@ class AutoEncoder(nn.Module):
 
     def __init__(self, input_dim, output_dim, hidden_dims=None, activ='', normalize=False):
         super(AutoEncoder, self).__init__()
+        self.normalize = normalize
+
         if hidden_dims is None:
             hidden_dims = [1024, 512]
         cfg = [input_dim] + hidden_dims + [output_dim]
 
         self.encoder = self._make_layers(cfg, activ)
         self.decoder = self._make_layers(cfg[::-1], activ)
-        self.normalize = L2Normalize() if normalize else None
 
         self._init_parameters()
 
@@ -44,7 +45,7 @@ class AutoEncoder(nn.Module):
     def forward(self, x):
         z = self.encoder(x)
         if self.normalize is not None:
-            z = self.normalize(z, dim=1)
+            z = l2_normalize(z, dim=1)
         x = self.decoder(z)
         return x
 

@@ -296,18 +296,12 @@ def is_number(s):
     return False
 
 
-class L2Normalize(torch.nn.Module):
-
-    def __init__(self, eps=1e-12):
-        super(L2Normalize, self).__init__()
-        self.register_buffer('eps', torch.tensor(eps))
-
-    def forward(self, x, dim=None):
-        if dim is None:
-            norm = torch.sqrt(torch.max(torch.sum(x ** 2), self.eps)).expand_as(x)
-        else:
-            norm = torch.sqrt(torch.max(torch.sum(x ** 2, dim), self.eps)).unsqueeze(dim)
-        return x / norm
+def l2_normalize(x, dim=None, eps=1e-12):
+    if dim is None:
+        norm = torch.sqrt(torch.sum(x ** 2).clamp_min(eps)).expand_as(x)
+    else:
+        norm = torch.sqrt(torch.sum(x ** 2, dim).clamp_min(eps)).unsqueeze(dim)
+    return x / norm
 
 
 def get_optimizer(opt, model, learning_rate):
