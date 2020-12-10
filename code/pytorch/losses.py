@@ -127,16 +127,38 @@ class MultiKELoss(nn.Module):
         self.cv_weight = cv_weight
         self.orthogonal_weight = orthogonal_weight
         # same as MultiKENet
-        self.views_cfg = self.views_cfg = {
-            'rv': self,
-            'av': self,
-            'ckgrtv': self,
-            'ckgatv': self,
-            'ckgrrv': self,
-            'ckgarv': self,
-            'cnv': self,
-            'mv': self
+        self.views_cfg = {
+            'rv': relation_logistic_loss,
+            'av': attribute_triple_loss,
+            'ckgrtv': cross_kg_relation_triple_loss,
+            'ckgatv': cross_kg_attribute_triple_loss,
+            'ckgrrv': cross_kg_relation_reference_loss,
+            'ckgarv': cross_kg_attribute_reference_loss,
+            'cnv': cross_name_view_loss,
+            'mv': mapping_loss
         }
+
+        # self.views_cfg = {
+        #     'rv': self.relation_triple,
+        #     'av': self.attribute_triple,
+        #     'ckgrtv': self.cross_kg_relation_triple,
+        #     'ckgatv': self.cross_kg_attribute_triple,
+        #     'ckgrrv': self.cross_kg_relation_reference,
+        #     'ckgarv': self.cross_kg_attribute_reference,
+        #     'cnv': self.cross_name_view,
+        #     'mv': self.multi_view
+        # }
+
+        # self.loss = {
+        #     'rv': relation_logistic_loss,
+        #     'av': attribute_triple_loss,
+        #     'ckgrtv': cross_kg_relation_triple_loss,
+        #     'ckgatv': cross_kg_attribute_triple_loss,
+        #     'ckgrrv': cross_kg_relation_reference_loss,
+        #     'ckgarv': cross_kg_attribute_reference_loss,
+        #     'cnv': cross_name_view_loss,
+        #     'mv': mapping_loss
+        # }
 
     def forward(self, preds, targets, view):
         self.views_cfg[view](*preds, *targets)
