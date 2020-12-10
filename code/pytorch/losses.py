@@ -72,52 +72,6 @@ def alignment_loss(ents1, ents2):
     return loss
 
 
-def attribute_triple_loss(pos_score, attr_pos_ws):
-    pos_score = torch.log(1 + torch.exp(-pos_score))
-    pos_score = torch.multiply(pos_score, attr_pos_ws)
-    loss = torch.sum(pos_score)
-    return loss
-
-
-def cross_kg_relation_triple_loss(ckge_rel_phs, ckge_rel_prs, ckge_rel_pts):
-    loss = 2 * relation_logistic_loss_wo_negs(ckge_rel_phs, ckge_rel_prs, ckge_rel_pts)
-    return loss
-
-
-def cross_kg_attribute_triple_loss(pos_score):
-    loss = 2 * torch.sum(torch.log(1 + torch.exp(-pos_score)))
-    return loss
-
-
-def cross_kg_relation_reference_loss(ckgp_rel_phs, ckgp_rel_prs, ckgp_rel_pts, ckgp_rel_pos_ws):
-    loss = 2 * logistic_loss_wo_negs(ckgp_rel_phs, ckgp_rel_prs, ckgp_rel_pts, ckgp_rel_pos_ws)
-    return loss
-
-
-def cross_kg_attribute_reference_loss(pos_score, ckga_attr_pos_ws):
-    pos_score = torch.log(1 + torch.exp(-pos_score))
-    pos_score = torch.multiply(pos_score, ckga_attr_pos_ws)
-    loss = torch.sum(pos_score)
-    # loss = torch.sum(torch.log(1 + torch.exp(-pos_score)))
-    return loss
-
-
-def cross_name_view_loss(final_cn_phs, cn_hs_names, cr_hs, ca_hs, cv_name_weight, cv_weight):
-    loss = cv_name_weight * alignment_loss(final_cn_phs, cn_hs_names)
-    loss += alignment_loss(final_cn_phs, cr_hs)
-    loss += alignment_loss(final_cn_phs, ca_hs)
-    loss = cv_weight * loss
-    return loss
-
-
-def mapping_loss(final_ents, nv_ents, rv_ents, av_ents, nv_mapping, rv_mapping, av_mapping, eye, orthogonal_weight):
-    nv_space_mapping_loss = space_mapping_loss(nv_ents, final_ents, nv_mapping, eye, orthogonal_weight)
-    rv_space_mapping_loss = space_mapping_loss(rv_ents, final_ents, rv_mapping, eye, orthogonal_weight)
-    av_space_mapping_loss = space_mapping_loss(av_ents, final_ents, av_mapping, eye, orthogonal_weight)
-    loss = nv_space_mapping_loss + rv_space_mapping_loss + av_space_mapping_loss
-    return loss
-
-
 class MultiKELoss(nn.Module):
 
     def __init__(self, eye, cv_name_weight, cv_weight, orthogonal_weight):
@@ -126,39 +80,59 @@ class MultiKELoss(nn.Module):
         self.cv_name_weight = cv_name_weight
         self.cv_weight = cv_weight
         self.orthogonal_weight = orthogonal_weight
-        # same as MultiKENet
-        self.views_cfg = {
-            'rv': relation_logistic_loss,
-            'av': attribute_triple_loss,
-            'ckgrtv': cross_kg_relation_triple_loss,
-            'ckgatv': cross_kg_attribute_triple_loss,
-            'ckgrrv': cross_kg_relation_reference_loss,
-            'ckgarv': cross_kg_attribute_reference_loss,
-            'cnv': cross_name_view_loss,
-            'mv': mapping_loss
+        self.losses_cfg = {
+            'rv': self.relation_triple_loss,
+            'av': self.attribute_triple_loss,
+            'ckgrtv': self.cross_kg_relation_triple_loss,
+            'ckgatv': self.cross_kg_attribute_triple_loss,
+            'ckgrrv': self.cross_kg_relation_reference_loss,
+            'ckgarv': self.cross_kg_attribute_reference_loss,
+            'cnv': self.cross_name_view_loss,
+            'mv': self.mapping_loss
         }
 
-        # self.views_cfg = {
-        #     'rv': self.relation_triple,
-        #     'av': self.attribute_triple,
-        #     'ckgrtv': self.cross_kg_relation_triple,
-        #     'ckgatv': self.cross_kg_attribute_triple,
-        #     'ckgrrv': self.cross_kg_relation_reference,
-        #     'ckgarv': self.cross_kg_attribute_reference,
-        #     'cnv': self.cross_name_view,
-        #     'mv': self.multi_view
-        # }
+    def relation_triple_loss(self, rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts):
+        loss = relation_logistic_loss(rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts)
+        return loss
 
-        # self.loss = {
-        #     'rv': relation_logistic_loss,
-        #     'av': attribute_triple_loss,
-        #     'ckgrtv': cross_kg_relation_triple_loss,
-        #     'ckgatv': cross_kg_attribute_triple_loss,
-        #     'ckgrrv': cross_kg_relation_reference_loss,
-        #     'ckgarv': cross_kg_attribute_reference_loss,
-        #     'cnv': cross_name_view_loss,
-        #     'mv': mapping_loss
-        # }
+    def attribute_triple_loss(self, pos_score, attr_pos_ws):
+        pos_score = torch.log(1 + torch.exp(-pos_score))
+        pos_score = torch.multiply(pos_score, attr_pos_ws)
+        loss = torch.sum(pos_score)
+        return loss
+
+    def cross_kg_relation_triple_loss(self, ckge_rel_phs, ckge_rel_prs, ckge_rel_pts):
+        loss = 2 * relation_logistic_loss_wo_negs(ckge_rel_phs, ckge_rel_prs, ckge_rel_pts)
+        return loss
+
+    def cross_kg_attribute_triple_loss(self, pos_score):
+        loss = 2 * torch.sum(torch.log(1 + torch.exp(-pos_score)))
+        return loss
+
+    def cross_kg_relation_reference_loss(self, ckgp_rel_phs, ckgp_rel_prs, ckgp_rel_pts, ckgp_rel_pos_ws):
+        loss = 2 * logistic_loss_wo_negs(ckgp_rel_phs, ckgp_rel_prs, ckgp_rel_pts, ckgp_rel_pos_ws)
+        return loss
+
+    def cross_kg_attribute_reference_loss(self, pos_score, ckga_attr_pos_ws):
+        pos_score = torch.log(1 + torch.exp(-pos_score))
+        pos_score = torch.multiply(pos_score, ckga_attr_pos_ws)
+        loss = torch.sum(pos_score)
+        # loss = torch.sum(torch.log(1 + torch.exp(-pos_score)))
+        return loss
+
+    def cross_name_view_loss(self, final_cn_phs, cn_hs_names, cr_hs, ca_hs, cv_name_weight):
+        loss = cv_name_weight * alignment_loss(final_cn_phs, cn_hs_names)
+        loss += alignment_loss(final_cn_phs, cr_hs)
+        loss += alignment_loss(final_cn_phs, ca_hs)
+        loss = self.cv_weight * loss
+        return loss
+
+    def mapping_loss(self, final_ents, nv_ents, rv_ents, av_ents, nv_mapping, rv_mapping, av_mapping):
+        nv_space_mapping_loss = space_mapping_loss(nv_ents, final_ents, nv_mapping, self.eye, self.orthogonal_weight)
+        rv_space_mapping_loss = space_mapping_loss(rv_ents, final_ents, rv_mapping, self.eye, self.orthogonal_weight)
+        av_space_mapping_loss = space_mapping_loss(av_ents, final_ents, av_mapping, self.eye, self.orthogonal_weight)
+        loss = nv_space_mapping_loss + rv_space_mapping_loss + av_space_mapping_loss
+        return loss
 
     def forward(self, preds, targets, view):
-        self.views_cfg[view](*preds, *targets)
+        self.losses_cfg[view](*preds, *targets)
