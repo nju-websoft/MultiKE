@@ -54,6 +54,8 @@ class MultiKENet(nn.Module):
         self.av_ent_embeds = nn.Parameter(torch.Tensor(num_entities, embed_dim))
         self.attr_embeds = nn.Parameter(torch.Tensor(num_attributes, embed_dim))  # False important!
         self.attr_conv = Conv(embed_dim)
+        self.attr_triple_conv = Conv(embed_dim)
+        self.attr_ref_conv = Conv(embed_dim)
 
         # Shared embeddings
         self.ent_embeds = nn.Parameter(torch.Tensor(num_entities, embed_dim))
@@ -78,9 +80,9 @@ class MultiKENet(nn.Module):
             'rv': [self.rv_ent_embeds, self.rel_embeds],
             'av': [self.av_ent_embeds, self.attr_embeds, self.attr_conv],
             'ckgrtv': [self.rv_ent_embeds, self.rel_embeds],
-            'ckgatv': [self.av_ent_embeds, self.attr_embeds, self.attr_conv],
+            'ckgatv': [self.av_ent_embeds, self.attr_embeds, self.attr_triple_conv],
             'ckgrrv': [self.rv_ent_embeds, self.rel_embeds],
-            'ckgarv': [self.av_ent_embeds, self.attr_embeds, self.attr_conv],
+            'ckgarv': [self.av_ent_embeds, self.attr_embeds, self.attr_ref_conv],
             'cnv': [self.ent_embeds, self.rv_ent_embeds, self.av_ent_embeds],
             'mv': [self.ent_embeds, self.nv_mapping, self.rv_mapping, self.av_mapping]
         }
@@ -135,7 +137,7 @@ class MultiKENet(nn.Module):
         ckge_attr_phs = torch.index_select(av_ent_embeds, dim=0, index=ckge_attr_pos_hs)
         ckge_attr_pas = torch.index_select(self.attr_embeds, dim=0, index=ckge_attr_pos_as)
         ckge_attr_pvs = torch.index_select(self.literal_embeds, dim=0, index=ckge_attr_pos_vs)
-        pos_score = self.attr_conv(ckge_attr_phs, ckge_attr_pas, ckge_attr_pvs)
+        pos_score = self.attr_triple_conv(ckge_attr_phs, ckge_attr_pas, ckge_attr_pvs)
         return pos_score
 
     def cross_kg_relation_reference_lookup(self, ckgp_rel_pos_hs, ckgp_rel_pos_rs, ckgp_rel_pos_ts):
@@ -151,7 +153,7 @@ class MultiKENet(nn.Module):
         ckga_attr_phs = torch.index_select(av_ent_embeds, dim=0, index=ckga_attr_pos_hs)
         ckga_attr_pas = torch.index_select(self.attr_embeds, dim=0, index=ckga_attr_pos_as)
         ckga_attr_pvs = torch.index_select(self.literal_embeds, dim=0, index=ckga_attr_pos_vs)
-        pos_score = self.attr_conv(ckga_attr_phs, ckga_attr_pas, index=ckga_attr_pvs)
+        pos_score = self.attr_ref_conv(ckga_attr_phs, ckga_attr_pas, index=ckga_attr_pvs)
         return pos_score
 
     def cross_name_view_lookup(self, cn_hs):
