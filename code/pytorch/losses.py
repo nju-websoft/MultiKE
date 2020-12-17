@@ -74,22 +74,24 @@ def alignment_loss(ents1, ents2):
 
 class MultiKELoss(nn.Module):
 
-    def __init__(self, eye, cv_name_weight, cv_weight, orthogonal_weight):
+    def __init__(self, cv_name_weight, cv_weight, orthogonal_weight=2, eye=None):
         super(MultiKELoss, self).__init__()
-        self.eye = eye
         self.cv_name_weight = cv_name_weight
         self.cv_weight = cv_weight
         self.orthogonal_weight = orthogonal_weight
-        self.losses_cfg = {
+
+        self.cfg = {
             'rv': self.relation_triple_loss,
             'av': self.attribute_triple_loss,
             'ckgrtv': self.cross_kg_relation_triple_loss,
             'ckgatv': self.cross_kg_attribute_triple_loss,
             'ckgrrv': self.cross_kg_relation_reference_loss,
             'ckgarv': self.cross_kg_attribute_reference_loss,
-            'cnv': self.cross_name_view_loss,
-            'mv': self.mapping_loss
+            'cnv': self.cross_name_view_loss
         }
+        if eye is not None:
+            self.eye = eye
+            self.cfg['mv'] = self.mapping_loss
 
     def relation_triple_loss(self, rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts):
         loss = relation_logistic_loss(rel_phs, rel_prs, rel_pts, rel_nhs, rel_nrs, rel_nts)
@@ -120,8 +122,8 @@ class MultiKELoss(nn.Module):
         # loss = torch.sum(torch.log(1 + torch.exp(-pos_score)))
         return loss
 
-    def cross_name_view_loss(self, final_cn_phs, cn_hs_names, cr_hs, ca_hs, cv_name_weight):
-        loss = cv_name_weight * alignment_loss(final_cn_phs, cn_hs_names)
+    def cross_name_view_loss(self, final_cn_phs, cn_hs_names, cr_hs, ca_hs):
+        loss = self.cv_name_weight * alignment_loss(final_cn_phs, cn_hs_names)
         loss += alignment_loss(final_cn_phs, cr_hs)
         loss += alignment_loss(final_cn_phs, ca_hs)
         loss = self.cv_weight * loss
@@ -134,5 +136,5 @@ class MultiKELoss(nn.Module):
         loss = nv_space_mapping_loss + rv_space_mapping_loss + av_space_mapping_loss
         return loss
 
-    def forward(self, preds, targets, view):
-        self.losses_cfg[view](*preds, *targets)
+    def forward(self, preds, weights, view):
+        return self.cfg[view](*preds, *weights)
