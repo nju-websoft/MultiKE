@@ -4,6 +4,8 @@ import multiprocessing
 import numpy as np
 import Levenshtein
 from sklearn import preprocessing
+import torch
+from torch.utils.data import Dataset
 
 from base.kgs import read_kgs_from_folder
 from pytorch.literal_encoder import encode_literals, literal_vectors_exists, load_literal_vectors, save_literal_vectors
@@ -374,6 +376,22 @@ class DataModel:
         else:
             self.attribute_alignment_set = predicate_alignment_set
             self.update_attribute_triples(predicate_alignment_set)
+
+
+class TestDataset(Dataset):
+
+    def __init__(self, kg1_entities, kg2_entities):
+        super(TestDataset, self).__init__()
+        self.kg1 = kg1_entities
+        self.kg2 = kg2_entities
+
+    def __len__(self):
+        return len(self.kg1) + len(self.kg2)
+
+    def __getitem__(self, index):
+        kg1_len = len(self.kg1)
+        inputs = self.kg2[index - kg1_len] if index >= kg1_len else self.kg1[index]
+        return inputs
 
 
 if __name__ == '__main__':
