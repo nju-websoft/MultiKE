@@ -378,6 +378,165 @@ class DataModel:
             self.update_attribute_triples(predicate_alignment_set)
 
 
+class TrainDataset(Dataset):
+
+    def __init__(self, data_model, batch_size, view, num_neg_triples=0):
+        super(TrainDataset, self).__init__()
+        self.data_model = data_model
+        self.batch_size = batch_size
+        self.view = view
+        self.num_neg_triples = num_neg_triples
+        if view == 'ckgatv':
+            self.kg1 = self.data_model.kgs.kg1.sup_attribute_triples_list
+            self.kg2 = self.data_model.kgs.kg2.sup_attribute_triples_list
+        elif view == 'ckgrtv':
+            self.kg1 = self.data_model.kgs.kg1.sup_relation_triples_list
+            self.kg2 = self.data_model.kgs.kg2.sup_relation_triples_list
+        elif view in ['cnv', 'mv']:
+            self.kg1 = self.data_model.kgs.kg1.entities_list
+            self.kg2 = self.data_model.kgs.kg2.entities_list
+        elif view in ['ckgrrv', 'ckgarv', 'rv', 'av']:
+            self.kg1 = self.data_model.kgs.kg1
+            self.kg2 = self.data_model.kgs.kg2
+
+        self.regenerate()
+
+    def regenerate(self):
+        if self.view not in ['rv', 'av']:
+            if self.view == 'ckgrrv':
+                total = len(self.kg1.sup_relation_alignment_triples) + len(self.kg2.sup_relation_alignment_triples)
+            elif self.view == 'ckgarv':
+                total = len(self.kg1.sup_attribute_alignment_triples) + len(self.kg2.sup_attribute_alignment_triples)
+            else:
+                total = len(self.kg1) + len(self.kg2)
+            steps = int(math.ceil(total / self.batch_size))
+            batch_size = self.batch_size if steps > 1 else total
+            self.indices = [idx for _ in range(steps) for idx in random.sample(range(total), batch_size)]
+            # map(l.extend, [random.sample(range(total), batch_size) for _ in range(steps)])
+            # itertools.chain.from_iterable([random.sample(range(total), batch_size) for _ in range(steps)])
+        else:
+            if self.view == 'rv':
+                kg1_len = len(self.kg1.local_relation_triples_list)
+                kg2_len = len(self.kg2.local_relation_triples_list)
+            else:  # 'av'
+                kg1_len = len(self.kg1.attribute_triples_w_weights)
+                kg2_len = len(self.kg2.attribute_triples_w_weights)
+            total = kg1_len + kg2_len
+            steps = int(math.ceil(total / self.batch_size))
+            batch_size1 = int(kg1_len / total * self.batch_size)
+            batch_size2 = self.batch_size - batch_size1
+            kg1_indices = list(range(kg1_len))
+            kg2_indices = list(range(kg1_len, kg1_len + kg2_len))
+            random.shuffle(kg1_indices)
+            random.shuffle(kg2_indices)
+            self.indices = []
+            for i in range(steps):
+                self.indices += kg1_indices[i * batch_size1:(i + 1) * batch_size1]
+                self.indices += kg2_indices[i * batch_size2:(i + 1) * batch_size2]
+
+    def get_negs_fast(self, pos, triples_set, entities, neighbors, max_try=10):
+        head, relation, tail = pos
+        neg_triples = []
+        nums_to_sample = self.num_neg_triples
+        head_candidates = neighbors.get(head, entities)
+        tail_candidates = neighbors.get(tail, entities)
+        for i in range(max_try):
+            corrupt_head_prob = np.random.binomial(1, 0.5)
+            if corrupt_head_prob:
+                neg_heads = random.sample(head_candidates, nums_to_sample)
+                i_neg_triples = {(h2, relation, tail) for h2 in neg_heads}
+            else:
+                neg_tails = random.sample(tail_candidates, nums_to_sample)
+                i_neg_triples = {(head, relation, t2) for t2 in neg_tails}
+            if i == max_try - 1:
+                neg_triples += list(i_neg_triples)
+                break
+            else:
+                i_neg_triples = list(i_neg_triples - triples_set)
+                neg_triples += i_neg_triples
+            if len(neg_triples) == self.num_neg_triples:
+                break
+            else:
+                nums_to_sample = self.num_neg_triples - len(neg_triples)
+        assert len(neg_triples) == self.num_neg_triples
+        return neg_triples
+
+    def get_negs(self, pos, triples_set, entities, neighbors, max_try=10):
+        neg_triples = []
+        head, relation, tail  = pos
+        head_candidates = neighbors.get(head, entities)
+        tail_candidates = neighbors.get(tail, entities)
+        for i in range(self.num_neg_triples):
+            n = 0
+            while True:
+                corrupt_head_prob = np.random.binomial(1, 0.5)
+                neg_head = head
+                neg_tail = tail
+                if corrupt_head_prob:
+                    neg_head = random.choice(head_candidates)
+                else:
+                    neg_tail = random.choice(tail_candidates)
+                if (neg_head, relation, neg_tail) not in triples_set:
+                    neg_triples.append((neg_head, relation, neg_tail))
+                    break
+                n += 1
+                if n == max_try:
+                    neg_tail = random.choice(entities)
+                    neg_triples.append((head, relation, neg_tail))
+                    break
+        assert len(neg_triples) == self.num_neg_triples
+        return neg_triples
+
+    def gen_negs_attr(self, pos, triples_set, entities, neighbors):
+        neg_triples = []
+        head, attribute, value, w = pos
+        for i in range(self.num_neg_triples):
+            while True:
+                neg_head = random.choice(neighbors.get(head, entities))
+                if (neg_head, attribute, value, w) not in triples_set:
+                    break
+            neg_triples.append((neg_head, attribute, value, w))
+        assert len(neg_triples) == self.num_neg_triples
+        return neg_triples
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, index):
+        idx = self.indices[index]
+        if self.view not in ['rv', 'av']:
+            if self.view not in ['ckgrrv', 'ckgarv']:
+                kg1_len = len(self.kg1)
+                pos = self.kg2[idx - kg1_len] if idx >= kg1_len else self.kg1[idx]
+            else:
+                kg1_len = len(self.kg1.sup_relation_alignment_triples if self.view == 'ckgrrv' else self.kg1.sup_attribute_alignment_triples)
+                kg = self.kg2 if idx >= kg1_len else self.kg1
+                if self.view == 'ckgrrv':
+                    pos = kg.sup_relation_alignment_triples[idx - kg1_len if idx >= kg1_len else idx]
+                else:
+                    pos = kg.sup_attribute_alignment_triples[idx - kg1_len if idx >= kg1_len else idx]
+        else:
+            kg1_len = len(self.kg1.local_relation_triples_list if self.view == 'rv' else self.kg1.attribute_triples_w_weights)
+            kg = self.kg2 if idx >= kg1_len else self.kg1
+            neighbors = self.data_model.neighbors2 if idx >= kg1_len else self.data_model.neighbors1
+            if self.view == 'rv':
+                pos = kg.local_relation_triples_list[idx - kg1_len if idx >= kg1_len else idx]
+                negs = self.get_negs_fast(pos, kg.local_relation_triples_set, kg.entities_list, neighbors)
+                nhs = [x[0] for x in negs]
+                nrs = [x[1] for x in negs]
+                nts = [x[2] for x in negs]
+                return list(pos) + [nhs, nrs, nts], []
+            else:
+                pos = kg.attribute_triples_w_weights[idx - kg1_len if idx >= kg1_len else idx]
+                # negs = self.gen_negs_attr(pos, kg.attribute_triples_w_weights_set, kg.entities_list, neighbors)
+
+        inputs = pos[:3] if self.view not in ['cnv', 'mv'] else [pos]
+        weights = []
+        if self.view in ['ckgarv', 'ckgrrv', 'av']:
+            weights.append(pos[3])
+        return inputs, weights
+
+
 class TestDataset(Dataset):
 
     def __init__(self, kg1_entities, kg2_entities):
