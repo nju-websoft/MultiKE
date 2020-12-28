@@ -1,11 +1,14 @@
 import gc
+import time
+import math
+import random
 import multiprocessing
 
 import numpy as np
 import Levenshtein
 from sklearn import preprocessing
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset
 
 from base.kgs import read_kgs_from_folder
 from pytorch.literal_encoder import encode_literals, literal_vectors_exists, load_literal_vectors, save_literal_vectors
@@ -376,6 +379,32 @@ class DataModel:
         else:
             self.attribute_alignment_set = predicate_alignment_set
             self.update_attribute_triples(predicate_alignment_set)
+
+    def update_predicate_alignment(self, model):
+        rel_embeds = l2_normalize(model.rel_embeds.detach()).cpu().numpy()
+        self._update_predicate_alignment(rel_embeds)
+        attr_embeds = model.attr_embeds.detach().cpu().numpy()
+        self._update_predicate_alignment(attr_embeds, predicate_type='attribute')
+
+    def generate_neighbours(self, model, truncated_epsilon):
+        start_time = time.time()
+        neighbors_num1 = int((1 - truncated_epsilon) * self.kgs.kg1.entities_num)
+        neighbors_num2 = int((1 - truncated_epsilon) * self.kgs.kg2.entities_num)
+
+        useful_entities_list1 = np.array(self.kgs.useful_entities_list1)
+        dataloader = DataLoader(TensorDataset(torch.from_numpy(useful_entities_list1)), self.args.batch_size,
+                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
+        entity_embeds1 = model.embeds(model, dataloader)
+        self.neighbors1 = _generate_neighbours(entity_embeds1, useful_entities_list1, neighbors_num1, self.args.batch_threads_num)
+        useful_entities_list2 = np.array(self.kgs.useful_entities_list2)
+        dataloader = DataLoader(TensorDataset(torch.from_numpy(useful_entities_list2)), self.args.batch_size,
+                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
+        entity_embeds2 = model.embeds(model, dataloader)
+        self.neighbors2 = _generate_neighbours(entity_embeds2, useful_entities_list2, neighbors_num2, self.args.batch_threads_num)
+        ent_num = len(self.kgs.kg1.entities_list) + len(self.kgs.kg2.entities_list)
+        end_time = time.time()
+        print('neighbor dict:', len(self.neighbors1), type(self.neighbors2))
+        print("generating neighbors of {} entities costs {:.3f} s.".format(ent_num, end_time - start_time))
 
 
 class TrainDataset(Dataset):

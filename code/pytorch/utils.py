@@ -87,7 +87,7 @@ def save_embeddings(folder, kgs, ent_embeds, nv_ent_embeds, rv_ent_embeds, av_en
 
 def read_word2vec(file_path, vector_dimension=300):
     print('\n', file_path)
-    word2vec = dict()
+    word2vec = {}
     with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
             line = line.strip('\n').split(' ')
@@ -110,7 +110,7 @@ def read_local_name(folder_path, entities_set_1, entities_set_2):
 
 def read_local_name_file(file_path, entities_set):
     print('read local names from', file_path)
-    entity_local_name = dict()
+    entity_local_name = {}
     cnt = 0
     with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
@@ -304,13 +304,13 @@ def l2_normalize(x, dim=None, eps=1e-12):
     return x / norm
 
 
-def get_optimizer(opt, model, learning_rate):
-    if opt == 'adagrad':
-        optimizer = torch.optim.Adagrad(model.parameters(), lr=learning_rate)
-    elif opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(model.parameters(), lr=learning_rate)
-    elif opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+def get_optimizer(name, parameters, learning_rate):
+    if name == 'adagrad':
+        optimizer = torch.optim.Adagrad(parameters, lr=learning_rate)
+    elif name == 'adadelta':
+        optimizer = torch.optim.Adadelta(parameters, lr=learning_rate)
+    elif name == 'adam':
+        optimizer = torch.optim.Adam(parameters, lr=learning_rate)
     else:
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.SGD(parameters, lr=learning_rate)
     return optimizer
