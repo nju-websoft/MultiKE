@@ -72,7 +72,7 @@ def encode_literals(args, literal_list, word2vec, tokens_max_len=5, word2vec_dim
     model = AutoEncoder(literal_vector_list.shape[1], args.dim, activ=args.encoder_activ, normalize=args.encoder_normalize)
     model = model.to(device)
     criterion = nn.MSELoss()
-    optimizer = get_optimizer(args.optimizer, model, args.learning_rate)
+    optimizer = get_optimizer(args.optimizer, model.parameters(), args.learning_rate)
     total = 0
     running_loss = 0.0
 
@@ -106,9 +106,9 @@ def encode_literals(args, literal_list, word2vec, tokens_max_len=5, word2vec_dim
             inputs = inputs[0].to(device)
 
             outputs = model.encoder(inputs)
-            encoded_literal_vector.append(outputs)
+            encoded_literal_vector.append(outputs.cpu())
 
-    return torch.cat(encoded_literal_vector, dim=0).cpu().numpy()
+    return torch.cat(encoded_literal_vector, dim=0).numpy()
 
 
 def save_literal_vectors(folder, literal_list, literal_vectors):
