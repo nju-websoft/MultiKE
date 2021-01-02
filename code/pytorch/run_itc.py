@@ -18,7 +18,7 @@ parser_args = parser.parse_args()
 
 if __name__ == '__main__':
     args = load_args('./pytorch/args.json')
-    args.training_data = parser_args.training_data
+    # args.training_data = parser_args.training_data
     data = DataModel(args)
 
     views = ['rv', 'ckgrtv', 'ckgrrv', 'av', 'ckgatv', 'ckgarv', 'cnv']
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     out_folder = generate_out_folder(args.output, args.training_data, '', model.__class__.__name__)
     early_stop = False
 
-    model.test(args, model, test_dataloader, embed_choice='nv')
+    # model.test(args, model, test_dataloader, embed_choice='nv')
 
     for i in range(1, args.epochs + 1):
         print('epoch {}:'.format(i))
@@ -90,24 +90,24 @@ if __name__ == '__main__':
         }, os.path.join(out_folder, 'checkpoint.pth'))
 
         if i >= args.start_valid and i % args.eval_freq == 0:
-            model.valid(args, model, valid_dataloader, embed_choice='rv')
-            model.valid(args, model, valid_dataloader, embed_choice='av')
-            model.valid(args, model, valid_dataloader, embed_choice='final')
+            # model.valid(args, model, valid_dataloader, embed_choice='rv')
+            # model.valid(args, model, valid_dataloader, embed_choice='av')
+            # model.valid(args, model, valid_dataloader, embed_choice='final')
 
             if early_stop or i == args.max_epoch:
                 break
 
-        if i >= args.start_predicate_soft_alignment and i % 1 == 0:
-            data.update_predicate_alignment(model)
-
-        if args.neg_sampling == 'truncated' and i % args.truncated_freq == 0:
-            assert 0.0 < args.truncated_epsilon < 1.0
-            data.generate_neighbours(model, args.truncated_epsilon)
+        # if i >= args.start_predicate_soft_alignment and i % 1 == 0:
+        #     data.update_predicate_alignment(model)
+        #
+        # if args.neg_sampling == 'truncated' and i % args.truncated_freq == 0:
+        #     assert 0.0 < args.truncated_epsilon < 1.0
+        #     data.generate_neighbours(model, args.truncated_epsilon)
 
         for ds in train_datasets:
             ds.regenerate()
 
-    model.test(args, model, test_dataloader, embed_choice='nv')
-    model.test(args, model, test_dataloader, embed_choice='rv')
-    model.test(args, model, test_dataloader, embed_choice='av')
-    model.test(args, model, test_dataloader, embed_choice='final')
+    # model.test(args, model, test_dataloader, embed_choice='nv')
+    # model.test(args, model, test_dataloader, embed_choice='rv')
+    # model.test(args, model, test_dataloader, embed_choice='av')
+    # model.test(args, model, test_dataloader, embed_choice='final')

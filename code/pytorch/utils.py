@@ -47,6 +47,7 @@ def generate_out_folder(out_folder, training_data_path, div_path, method_name):
     params = training_data_path.strip('/').split('/')
     path = params[-1]
     folder = out_folder + method_name + '/' + path + "/" + div_path + str(time.strftime("%Y%m%d%H%M%S")) + "/"
+    os.makedirs(folder, exist_ok=True)
     print("results output folder:", folder)
     return folder
 
