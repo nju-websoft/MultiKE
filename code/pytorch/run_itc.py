@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     # model.test(args, model, test_dataloader, embed_choice='nv')
 
-    for i in range(1, args.epochs + 1):
+    for i in range(1, args.max_epoch + 1):
         print('epoch {}:'.format(i))
 
         for idx, view in enumerate(views):
