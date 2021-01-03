@@ -188,6 +188,8 @@ class MultiKE_Late(MultiKE):
         self._define_attribute_view_graph()
 
         self._define_cross_kg_entity_reference_relation_view_graph()
+        """transforms into `views = ['' '' '']`, look up views in the methods like
+        `_define_cross_kg_entity_reference_relation_view_graph`"""
         self._define_cross_kg_entity_reference_attribute_view_graph()
         self._define_cross_kg_relation_reference_graph()
         self._define_cross_kg_attribute_reference_graph()

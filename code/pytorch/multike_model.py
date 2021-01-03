@@ -6,6 +6,23 @@ from pytorch.utils import l2_normalize
 from base.evaluation import valid
 
 
+def _compute_weight(embeds1, embeds2, embeds3):
+    other_embeds = (embeds1 + embeds2 + embeds3) / 3
+    other_embeds = preprocessing.normalize(other_embeds)
+    embeds1 = preprocessing.normalize(embeds1)
+    sim_mat = np.matmul(embeds1, other_embeds.T)
+    weights = np.diag(sim_mat)
+    print(weights.shape, np.mean(weights))
+    return np.mean(weights)
+
+
+def wva(embeds1, embeds2, embeds3):
+    weight1 = _compute_weight(embeds1, embeds2, embeds3)
+    weight2 = _compute_weight(embeds2, embeds1, embeds3)
+    weight3 = _compute_weight(embeds3, embeds1, embeds2)
+    return weight1, weight2, weight3
+
+
 class Conv(nn.Module):
 
     def __init__(self, input_dim, output_dim=2, kernel_size=(2, 4), activ=nn.Tanh, num_layers=2):
@@ -255,6 +272,78 @@ class MultiKENet(nn.Module):
 
         embeds = torch.cat(embeds, dim=0).numpy()
         return embeds
+
+    @staticmethod
+    @torch.no_grad()
+    def valid_WVA(args, model, valid_dataloader, test_dataloader):
+        nv_ent_embeds1 = torch.index_select(model.name_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        rv_ent_embeds1 = torch.index_select(model.rv_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        av_ent_embeds1 = torch.index_select(model.av_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        weight11, weight21, weight31 = wva(nv_ent_embeds1, rv_ent_embeds1, av_ent_embeds1)
+
+        test_list = test_dataloader.dataset.kg2
+        nv_ent_embeds2 = torch.index_select(model.name_embeds, dim=0, index=test_list)
+        rv_ent_embeds2 = torch.index_select(model.rv_ent_embeds, dim=0, index=test_list)
+        av_ent_embeds2 = torch.index_select(model.av_ent_embeds, dim=0, index=test_list)
+        weight12, weight22, weight32 = wva(nv_ent_embeds2, rv_ent_embeds2, av_ent_embeds2)
+
+        weight1 = weight11 + weight12
+        weight2 = weight21 + weight22
+        weight3 = weight31 + weight32
+        all_weight = weight1 + weight2 + weight3
+        weight1 /= all_weight
+        weight2 /= all_weight
+        weight3 /= all_weight
+
+        print('weights', weight1, weight2, weight3)
+
+        embeds1 = weight1 * nv_ent_embeds1 + \
+                weight2 * rv_ent_embeds1 + \
+                weight3 * av_ent_embeds1
+        embeds2 = weight1 * nv_ent_embeds2 + \
+                weight2 * rv_ent_embeds2 + \
+                weight3 * av_ent_embeds2
+
+        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
+                                    normalize=True)
+        return mrr_12
+
+
+    @staticmethod
+    @torch.no_grad()
+    def test_WVA(args, model, valid_dataloader, test_dataloader):
+        model.eval()
+        nv_ent_embeds1 = torch.index_select(model.name_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        rv_ent_embeds1 = torch.index_select(model.rv_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        av_ent_embeds1 = torch.index_select(model.av_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
+        weight11, weight21, weight31 = wva(nv_ent_embeds1, rv_ent_embeds1, av_ent_embeds1)
+
+        test_list = valid_dataloader.dataset.kg1 + test_dataloader.dataset.kg2
+        nv_ent_embeds2 = torch.index_select(model.name_embeds, dim=0, index=test_list)
+        rv_ent_embeds2 = torch.index_select(model.rv_ent_embeds, dim=0, index=test_list)
+        av_ent_embeds2 = torch.index_select(model.av_ent_embeds, dim=0, index=test_list)
+        weight12, weight22, weight32 = wva(nv_ent_embeds2, rv_ent_embeds2, av_ent_embeds2)
+
+        weight1 = weight11 + weight12
+        weight2 = weight21 + weight22
+        weight3 = weight31 + weight32
+        all_weight = weight1 + weight2 + weight3
+        weight1 /= all_weight
+        weight2 /= all_weight
+        weight3 /= all_weight
+
+        print('weights', weight1, weight2, weight3)
+
+        embeds1 = weight1 * nv_ent_embeds1 + \
+                weight2 * rv_ent_embeds1 + \
+                weight3 * av_ent_embeds1
+        embeds2 = weight1 * nv_ent_embeds2 + \
+                weight2 * rv_ent_embeds2 + \
+                weight3 * av_ent_embeds2
+
+        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
+                                    normalize=True)
+        return mrr_12
 
 
 if __name__ == '__main__':
