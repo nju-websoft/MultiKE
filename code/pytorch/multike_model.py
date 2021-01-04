@@ -250,7 +250,7 @@ class MultiKENet(nn.Module):
             ent_embeds = l2_normalize(model.ent_embeds)
         embeds = []
         for entities in dataloader:
-            entities = entities[0].to(ent_embeds.device)
+            entities = entities[0].long().to(ent_embeds.device)
             embeds.append(torch.index_select(ent_embeds, dim=0, index=entities).cpu())
 
         embeds = torch.cat(embeds, dim=0).numpy()

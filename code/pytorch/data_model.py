@@ -208,7 +208,6 @@ class DataModel:
     def __init__(self, args):
         self.args = args
         self.kgs = read_kgs_from_folder(args.training_data, args.dataset_division, args.alignment_module, False)
-        self.entities = self.kgs.kg1.entities_set | self.kgs.kg2.entities_set
         self.word2vec_path = args.word2vec_path
         self.entity_local_name_dict = read_local_name(args.training_data, set(self.kgs.kg1.entities_id_dict.keys()),
                                                       set(self.kgs.kg2.entities_id_dict.keys()))
@@ -217,9 +216,9 @@ class DataModel:
         self._generate_attribute_value_vectors()
 
         self.relation_name_dict1, self.attribute_name_dict1 = read_predicate_local_name_file(
-            self.args.training_data + 'predicate_local_name_1', set(self.kgs.kg1.relations_id_dict.keys()))
+            args.training_data + 'predicate_local_name_1', set(self.kgs.kg1.relations_id_dict.keys()))
         self.relation_name_dict2, self.attribute_name_dict2 = read_predicate_local_name_file(
-            self.args.training_data + 'predicate_local_name_2', set(self.kgs.kg2.relations_id_dict.keys()))
+            args.training_data + 'predicate_local_name_2', set(self.kgs.kg2.relations_id_dict.keys()))
 
         self.relation_id_alignment_set = None
         # self.train_relations1, self.train_relations2 = None, None
@@ -228,17 +227,20 @@ class DataModel:
         # self.train_attributes1, self.train_attributes2 = None, None
 
         self.relation_alignment_set, self.relation_latent_match_pairs_similarity_dict_init = \
-            init_predicate_alignment(self.relation_name_dict1, self.relation_name_dict2, self.args.predicate_init_sim)
+            init_predicate_alignment(self.relation_name_dict1, self.relation_name_dict2, args.predicate_init_sim)
         self.attribute_alignment_set, self.attribute_latent_match_pairs_similarity_dict_init = \
-            init_predicate_alignment(self.attribute_name_dict1, self.attribute_name_dict2, self.args.predicate_init_sim)
+            init_predicate_alignment(self.attribute_name_dict1, self.attribute_name_dict2, args.predicate_init_sim)
         self.relation_alignment_set_init = self.relation_alignment_set
         self.attribute_alignment_set_init = self.attribute_alignment_set
         self.update_relation_triples(self.relation_alignment_set)
         self.update_attribute_triples(self.attribute_alignment_set)
         self.neighbors1, self.neighbors2 = {}, {}
+        self.dataloader1 = DataLoader(TensorDataset(torch.from_numpy(self.kgs.all_entities[:, 0])), self.args.batch_size,
+                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
+        self.dataloader2 = DataLoader(TensorDataset(torch.from_numpy(self.kgs.all_entities[:, 1])), self.args.batch_size,
+                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
 
     def _generate_literal_vectors(self):
-
         if not self.args.retrain_literal_embeds and literal_vectors_exists(self.args.training_data):
             self.literal_list, self.literal_vectors = load_literal_vectors(self.args.training_data)
         else:
@@ -256,14 +258,13 @@ class DataModel:
 
     def _generate_name_vectors(self):
         name_ordered_list = []
-        num = len(self.entities)
-        print("total entities:", num)
+        print("total entities:", self.kgs.num_entities)
         entity_id_uris_dic = dict(zip(self.kgs.kg1.entities_id_dict.values(), self.kgs.kg1.entities_id_dict.keys()))
         entity_id_uris_dic2 = dict(zip(self.kgs.kg2.entities_id_dict.values(), self.kgs.kg2.entities_id_dict.keys()))
         entity_id_uris_dic.update(entity_id_uris_dic2)
         print('total entities ids:', len(entity_id_uris_dic))
-        assert len(entity_id_uris_dic) == num
-        for i in range(num):
+        assert len(entity_id_uris_dic) == self.kgs.num_entities
+        for i in range(self.kgs.num_entities):
             assert i in entity_id_uris_dic
             entity_uri = entity_id_uris_dic.get(i)
             assert entity_uri in self.entity_local_name_dict
@@ -391,16 +392,10 @@ class DataModel:
         neighbors_num1 = int((1 - truncated_epsilon) * self.kgs.kg1.entities_num)
         neighbors_num2 = int((1 - truncated_epsilon) * self.kgs.kg2.entities_num)
 
-        useful_entities_list1 = np.array(self.kgs.useful_entities_list1)
-        dataloader = DataLoader(TensorDataset(torch.from_numpy(useful_entities_list1)), self.args.batch_size,
-                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
-        entity_embeds1 = model.embeds(model, dataloader)
-        self.neighbors1 = _generate_neighbours(entity_embeds1, useful_entities_list1, neighbors_num1, self.args.batch_threads_num)
-        useful_entities_list2 = np.array(self.kgs.useful_entities_list2)
-        dataloader = DataLoader(TensorDataset(torch.from_numpy(useful_entities_list2)), self.args.batch_size,
-                                shuffle=False, num_workers=self.args.num_workers, pin_memory=self.args.pin_memory)
-        entity_embeds2 = model.embeds(model, dataloader)
-        self.neighbors2 = _generate_neighbours(entity_embeds2, useful_entities_list2, neighbors_num2, self.args.batch_threads_num)
+        entity_embeds1 = model.embeds(model, self.dataloader1)
+        self.neighbors1 = _generate_neighbours(entity_embeds1, self.kgs.all_entities[:, 0], neighbors_num1, self.args.batch_threads_num)
+        entity_embeds2 = model.embeds(model, self.dataloader2)
+        self.neighbors2 = _generate_neighbours(entity_embeds2, self.kgs.all_entities[:, 1], neighbors_num2, self.args.batch_threads_num)
         ent_num = len(self.kgs.kg1.entities_list) + len(self.kgs.kg2.entities_list)
         end_time = time.time()
         print('neighbor dict:', len(self.neighbors1), type(self.neighbors2))

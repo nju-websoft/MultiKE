@@ -29,13 +29,13 @@ if __name__ == '__main__':
     train_datasets = [TrainDataset(data, bs, v) for bs, v in zip(batch_sizes, views)]
     train_datasets[0].num_neg_triples = args.neg_triple_num
     train_dataloaders = [DataLoader(ds, bs, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory) for ds, bs in zip(train_datasets, batch_sizes)]
-    valid_dataset = TestDataset(data.kgs.valid_entities1, data.kgs.valid_entities2)
-    test_dataset = TestDataset(data.kgs.test_entities1, data.kgs.test_entities2)
+    valid_dataset = TestDataset(data.kgs.get_entities('valid', 1), data.kgs.get_entities('valid', 2))
+    test_dataset = TestDataset(data.kgs.get_entities('test', 1), data.kgs.get_entities('test', 2))
     valid_dataloader = DataLoader(valid_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory)
     test_dataloader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory)
 
     device = torch.device(args.device)
-    model = MultiKECVNet(data.kgs.entities_num, data.kgs.relations_num, data.kgs.attributes_num, args.dim, data.value_vectors, data.local_name_vectors)
+    model = MultiKECVNet(data.kgs.num_entities, data.kgs.num_relations, data.kgs.num_attributes, args.dim, data.value_vectors, data.local_name_vectors)
     model.to(device)
 
     lrs = [args.learning_rate] * len(views)

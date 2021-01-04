@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn import preprocessing
 
-from base.kgs import read_kgs_from_folder
+from pytorch.kgs import read_kgs_from_folder
 from pytorch.utils import l2_normalize, generate_unlisted_word2vec, get_optimizer
 from pytorch.utils import load_args, read_local_name, clear_attribute_triples, read_word2vec
 
