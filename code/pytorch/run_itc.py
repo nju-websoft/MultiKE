@@ -67,7 +67,7 @@ if __name__ == '__main__':
                     inputs_negs = list(map(lambda x: torch.cat(x, dim=0).to(device), inputs[3:]))
                     inputs = inputs_pos + inputs_negs
                 else:
-                    inputs = list(map(lambda x: x.to(device), inputs))
+                    inputs = list(map(lambda x: x.long().to(device), inputs))
                 weights = list(map(lambda x: x.float().to(device), weights))
 
                 optimizer.zero_grad()

@@ -10,7 +10,7 @@ from sklearn import preprocessing
 import torch
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 
-from base.kgs import read_kgs_from_folder
+from pytorch.kgs import read_kgs_from_folder
 from pytorch.literal_encoder import encode_literals, literal_vectors_exists, load_literal_vectors, save_literal_vectors
 from pytorch.utils import task_divide, merge_dic, read_local_name, clear_attribute_triples, read_word2vec, l2_normalize, load_args
 
@@ -303,7 +303,7 @@ class DataModel:
         id_attribute_triples2 = set([(h, a, int(values_id_dic[v])) for (h, a, v) in attribute_triples_list2])
         self.kgs.kg1.set_attributes(id_attribute_triples1)
         self.kgs.kg2.set_attributes(id_attribute_triples2)
-        sup_triples1, sup_triples2 = generate_sup_attribute_triples(self.kgs.train_links, self.kgs.kg1.av_dict, self.kgs.kg2.av_dict)
+        sup_triples1, sup_triples2 = generate_sup_attribute_triples(self.kgs.get_entities('train'), self.kgs.kg1.av_dict, self.kgs.kg2.av_dict)
         self.kgs.kg1.add_sup_attribute_triples(sup_triples1)
         self.kgs.kg2.add_sup_attribute_triples(sup_triples2)
         num = len(values_id_dic)
