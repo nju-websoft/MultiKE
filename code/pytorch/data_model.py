@@ -199,7 +199,7 @@ def find_neighbours(frags, entity_list, sub_embed, embed, k):
     for i in range(sim_mat.shape[0]):
         sort_index = np.argpartition(-sim_mat[i, :], k)
         neighbors_index = sort_index[0:k]
-        neighbors = entity_list[neighbors_index].tolist()
+        neighbors = entity_list[neighbors_index]
         dic[frags[i]] = neighbors
     return dic
 
@@ -462,8 +462,8 @@ class TrainDataset(Dataset):
         head, relation, tail = pos
         neg_triples = []
         nums_to_sample = self.num_neg_triples
-        head_candidates = neighbors.get(head, entities)
-        tail_candidates = neighbors.get(tail, entities)
+        head_candidates = neighbors[head].tolist() if head in neighbors else entities
+        tail_candidates = neighbors[tail].tolist() if tail in neighbors else entities
         for i in range(max_try):
             corrupt_head_prob = np.random.binomial(1, 0.5)
             if corrupt_head_prob:
@@ -488,8 +488,8 @@ class TrainDataset(Dataset):
     def get_negs(self, pos, triples_set, entities, neighbors, max_try=10):
         neg_triples = []
         head, relation, tail  = pos
-        head_candidates = neighbors.get(head, entities)
-        tail_candidates = neighbors.get(tail, entities)
+        head_candidates = neighbors[head].tolist() if head in neighbors else entities
+        tail_candidates = neighbors[tail].tolist() if tail in neighbors else entities
         for i in range(self.num_neg_triples):
             n = 0
             while True:
@@ -514,9 +514,10 @@ class TrainDataset(Dataset):
     def gen_negs_attr(self, pos, triples_set, entities, neighbors):
         neg_triples = []
         head, attribute, value, w = pos
+        candidates = neighbors[head].tolist() if head in neighbors else entities
         for i in range(self.num_neg_triples):
             while True:
-                neg_head = random.choice(neighbors.get(head, entities))
+                neg_head = random.choice(candidates)
                 if (neg_head, attribute, value, w) not in triples_set:
                     break
             neg_triples.append((neg_head, attribute, value, w))
