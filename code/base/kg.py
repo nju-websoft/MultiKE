@@ -53,6 +53,13 @@ class KG:
         print("Number of local attribute triples:", self.local_attribute_triples_num)
         print()
 
+        self.attribute_triples_w_weights = None
+        self.attribute_triples_w_weights_set = None
+        self.relation_triples_w_weights = None
+        self.relation_triples_w_weights_set = None
+        self.sup_attribute_alignment_triples = None
+        self.sup_relation_alignment_triples = None
+
     def set_relations(self, relation_triples):
         self.relation_triples_set = set(relation_triples)
         self.relation_triples_list = list(self.relation_triples_set)
