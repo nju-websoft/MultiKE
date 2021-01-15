@@ -29,13 +29,15 @@ if __name__ == '__main__':
     train_datasets = [TrainDataset(data, bs, v) for bs, v in zip(batch_sizes, views)]
     train_datasets[0].num_neg_triples = args.neg_triple_num
     train_dataloaders = [DataLoader(ds, bs, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory) for ds, bs in zip(train_datasets, batch_sizes)]
-    valid_dataset = TestDataset(data.kgs.get_entities('valid', 1), data.kgs.get_entities('valid', 2))
+    valid_dataset = TestDataset(data.kgs.get_entities('valid', 1), data.kgs.get_entities('validtest', 2))
     test_dataset = TestDataset(data.kgs.get_entities('test', 1), data.kgs.get_entities('test', 2))
     valid_dataloader = DataLoader(valid_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory)
     test_dataloader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=args.pin_memory)
 
     device = torch.device(args.device)
     model = MultiKECVNet(data.kgs.num_entities, data.kgs.num_relations, data.kgs.num_attributes, args.dim, data.value_vectors, data.local_name_vectors)
+    state_dict = torch.load(os.path.join(args.training_data, 'checkpoint.pth'), map_location=args.device)['model']
+    model.load_state_dict(state_dict)
     model.to(device)
 
     lrs = [args.learning_rate] * len(views)
@@ -90,16 +92,16 @@ if __name__ == '__main__':
         }, os.path.join(out_folder, 'checkpoint.pth'))
 
         if i >= args.start_valid and i % args.eval_freq == 0:
-            # model.valid(args, model, valid_dataloader, embed_choice='rv')
-            # model.valid(args, model, valid_dataloader, embed_choice='av')
-            # model.valid(args, model, valid_dataloader, embed_choice='final')
+            # model.test(args, model, valid_dataloader, embed_choice='rv')
+            # model.test(args, model, valid_dataloader, embed_choice='av')
+            # model.test(args, model, valid_dataloader, embed_choice='final')
 
             if early_stop or i == args.max_epoch:
                 break
 
-        # if i >= args.start_predicate_soft_alignment and i % 1 == 0:
-        #     data.update_predicate_alignment(model)
-        #
+        if i >= args.start_predicate_soft_alignment and i % 1 == 0:
+            data.update_predicate_alignment(model)
+
         # if args.neg_sampling == 'truncated' and i % args.truncated_freq == 0:
         #     assert 0.0 < args.truncated_epsilon < 1.0
         #     data.generate_neighbours(model, args.truncated_epsilon)

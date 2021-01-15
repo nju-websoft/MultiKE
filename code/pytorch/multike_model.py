@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from sklearn import preprocessing
 
 from pytorch.utils import l2_normalize
 from base.evaluation import valid
@@ -181,71 +182,10 @@ class MultiKENet(nn.Module):
         nv_ents = torch.index_select(self.name_embeds, dim=0, index=entities)
         rv_ents = torch.index_select(rv_ent_embeds, dim=0, index=entities)
         av_ents = torch.index_select(av_ent_embeds, dim=0, index=entities)
-        return final_ents, nv_ents, rv_ents, av_ents
+        return final_ents, nv_ents, rv_ents, av_ents, self.nv_mapping, self.rv_mapping, self.av_mapping
 
     def forward(self, inputs, view):
         return self.cfg[view][1](*inputs)
-
-    @staticmethod
-    @torch.no_grad()
-    def valid(args, model, dataloader, embed_choice='avg', w=(1, 1, 1)):
-        if embed_choice == 'nv':
-            ent_embeds = model.name_embeds
-        elif embed_choice == 'rv':
-            ent_embeds = l2_normalize(model.rv_ent_embeds)
-        elif embed_choice == 'av':
-            ent_embeds = l2_normalize(model.av_ent_embeds)
-        elif embed_choice == 'final':
-            ent_embeds = l2_normalize(model.ent_embeds)
-        elif embed_choice == 'avg':
-            ent_embeds = w[0] * model.name_embeds + \
-                         w[1] * l2_normalize(model.rv_ent_embeds) + \
-                         w[2] * l2_normalize(model.av_ent_embeds)
-        else:  # 'final'
-            ent_embeds = l2_normalize(model.ent_embeds)
-        print(embed_choice, 'valid results:')
-        embeds = []
-        for entities in dataloader:
-            entities = entities.to(ent_embeds.device)
-            embeds.append(torch.index_select(ent_embeds, dim=0, index=entities).cpu())
-
-        embeds = torch.cat(embeds, dim=0).numpy()
-        num_kg1_ents = len(dataloader.dataset.kg1)
-        embeds1 = embeds[:num_kg1_ents]
-        embeds2 = embeds[num_kg1_ents:]
-        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
-        return mrr_12
-
-    @staticmethod
-    @torch.no_grad()
-    def test(args, model, dataloader, embed_choice='avg', w=(1, 1, 1)):
-        model.eval()
-        if embed_choice == 'nv':
-            ent_embeds = model.name_embeds
-        elif embed_choice == 'rv':
-            ent_embeds = l2_normalize(model.rv_ent_embeds)
-        elif embed_choice == 'av':
-            ent_embeds = l2_normalize(model.av_ent_embeds)
-        elif embed_choice == 'final':
-            ent_embeds = l2_normalize(model.ent_embeds)
-        elif embed_choice == 'avg':
-            ent_embeds = w[0] * model.name_embeds + \
-                         w[1] * l2_normalize(model.rv_ent_embeds) + \
-                         w[2] * l2_normalize(model.av_ent_embeds)
-        else:  # 'final'
-            ent_embeds = l2_normalize(model.ent_embeds)
-        print(embed_choice, 'test results:')
-        embeds = []
-        for entities in dataloader:
-            entities = entities.to(ent_embeds.device)
-            embeds.append(torch.index_select(ent_embeds, dim=0, index=entities).cpu())
-
-        embeds = torch.cat(embeds, dim=0).numpy()
-        num_kg1_ents = len(dataloader.dataset.kg1)
-        embeds1 = embeds[:num_kg1_ents]
-        embeds2 = embeds[num_kg1_ents:]
-        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
-        return mrr_12
 
     @staticmethod
     @torch.no_grad()
@@ -266,8 +206,8 @@ class MultiKENet(nn.Module):
         else:  # 'final'
             ent_embeds = l2_normalize(model.ent_embeds)
         embeds = []
-        for entities in dataloader:
-            entities = entities[0].long().to(ent_embeds.device)
+        for entities, in dataloader:
+            entities = entities.long().to(ent_embeds.device)
             embeds.append(torch.index_select(ent_embeds, dim=0, index=entities).cpu())
 
         embeds = torch.cat(embeds, dim=0).numpy()
@@ -275,53 +215,55 @@ class MultiKENet(nn.Module):
 
     @staticmethod
     @torch.no_grad()
-    def valid_WVA(args, model, valid_dataloader, test_dataloader):
-        nv_ent_embeds1 = torch.index_select(model.name_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        rv_ent_embeds1 = torch.index_select(model.rv_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        av_ent_embeds1 = torch.index_select(model.av_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        weight11, weight21, weight31 = wva(nv_ent_embeds1, rv_ent_embeds1, av_ent_embeds1)
+    def test(args, model, dataloader, embed_choice='avg', w=(1, 1, 1)):
+        model.eval()
+        if embed_choice == 'nv':
+            ent_embeds = model.name_embeds
+        elif embed_choice == 'rv':
+            ent_embeds = l2_normalize(model.rv_ent_embeds)
+        elif embed_choice == 'av':
+            ent_embeds = l2_normalize(model.av_ent_embeds)
+        elif embed_choice == 'final':
+            ent_embeds = l2_normalize(model.ent_embeds)
+        elif embed_choice == 'avg':
+            ent_embeds = w[0] * model.name_embeds + w[1] * l2_normalize(model.rv_ent_embeds) + w[2] * l2_normalize(model.av_ent_embeds)
+        else:  # 'final'
+            ent_embeds = l2_normalize(model.ent_embeds)
+        print(embed_choice, 'test results:')
+        embeds = []
+        for entities in dataloader:
+            entities = entities.long().to(ent_embeds.device)
+            embeds.append(torch.index_select(ent_embeds, dim=0, index=entities).cpu())
 
-        test_list = test_dataloader.dataset.kg2
-        nv_ent_embeds2 = torch.index_select(model.name_embeds, dim=0, index=test_list)
-        rv_ent_embeds2 = torch.index_select(model.rv_ent_embeds, dim=0, index=test_list)
-        av_ent_embeds2 = torch.index_select(model.av_ent_embeds, dim=0, index=test_list)
-        weight12, weight22, weight32 = wva(nv_ent_embeds2, rv_ent_embeds2, av_ent_embeds2)
-
-        weight1 = weight11 + weight12
-        weight2 = weight21 + weight22
-        weight3 = weight31 + weight32
-        all_weight = weight1 + weight2 + weight3
-        weight1 /= all_weight
-        weight2 /= all_weight
-        weight3 /= all_weight
-
-        print('weights', weight1, weight2, weight3)
-
-        embeds1 = weight1 * nv_ent_embeds1 + \
-                weight2 * rv_ent_embeds1 + \
-                weight3 * av_ent_embeds1
-        embeds2 = weight1 * nv_ent_embeds2 + \
-                weight2 * rv_ent_embeds2 + \
-                weight3 * av_ent_embeds2
-
-        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
-                                    normalize=True)
-        return mrr_12
-
+        embeds = torch.cat(embeds, dim=0).numpy()
+        num_kg1_ents = len(dataloader.dataset.kg1)
+        embeds1 = embeds[:num_kg1_ents]
+        embeds2 = embeds[num_kg1_ents:]
+        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
+        return mrr_12 if args.stop_metric == 'mrr' else hits1_12
 
     @staticmethod
     @torch.no_grad()
-    def test_WVA(args, model, valid_dataloader, test_dataloader):
+    def test_wva(args, model, dataloader):
         model.eval()
-        nv_ent_embeds1 = torch.index_select(model.name_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        rv_ent_embeds1 = torch.index_select(model.rv_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        av_ent_embeds1 = torch.index_select(model.av_ent_embeds, dim=0, index=valid_dataloader.dataset.kg1)
-        weight11, weight21, weight31 = wva(nv_ent_embeds1, rv_ent_embeds1, av_ent_embeds1)
+        nv_ent_embeds, rv_ent_embeds, av_ent_embeds = [], [], []
+        for entities in dataloader:
+            entities = entities.long().to(model.ent_embeds.device)
+            nv_ent_embeds.append(torch.index_select(model.name_embeds, dim=0, index=entities).cpu())
+            rv_ent_embeds.append(torch.index_select(model.rv_ent_embeds, dim=0, index=entities).cpu())
+            av_ent_embeds.append(torch.index_select(model.av_ent_embeds, dim=0, index=entities).cpu())
 
-        test_list = valid_dataloader.dataset.kg1 + test_dataloader.dataset.kg2
-        nv_ent_embeds2 = torch.index_select(model.name_embeds, dim=0, index=test_list)
-        rv_ent_embeds2 = torch.index_select(model.rv_ent_embeds, dim=0, index=test_list)
-        av_ent_embeds2 = torch.index_select(model.av_ent_embeds, dim=0, index=test_list)
+        nv_ent_embeds = torch.cat(nv_ent_embeds, dim=0).numpy()
+        rv_ent_embeds = torch.cat(rv_ent_embeds, dim=0).numpy()
+        av_ent_embeds = torch.cat(av_ent_embeds, dim=0).numpy()
+        num_kg1_ents = len(dataloader.dataset.kg1)
+        nv_ent_embeds1 = nv_ent_embeds[:num_kg1_ents]
+        nv_ent_embeds2 = nv_ent_embeds[num_kg1_ents:]
+        rv_ent_embeds1 = rv_ent_embeds[:num_kg1_ents]
+        rv_ent_embeds2 = rv_ent_embeds[num_kg1_ents:]
+        av_ent_embeds1 = av_ent_embeds[:num_kg1_ents]
+        av_ent_embeds2 = av_ent_embeds[num_kg1_ents:]
+        weight11, weight21, weight31 = wva(nv_ent_embeds1, rv_ent_embeds1, av_ent_embeds1)
         weight12, weight22, weight32 = wva(nv_ent_embeds2, rv_ent_embeds2, av_ent_embeds2)
 
         weight1 = weight11 + weight12
@@ -332,18 +274,14 @@ class MultiKENet(nn.Module):
         weight2 /= all_weight
         weight3 /= all_weight
 
+        print('wva test results:')
         print('weights', weight1, weight2, weight3)
 
-        embeds1 = weight1 * nv_ent_embeds1 + \
-                weight2 * rv_ent_embeds1 + \
-                weight3 * av_ent_embeds1
-        embeds2 = weight1 * nv_ent_embeds2 + \
-                weight2 * rv_ent_embeds2 + \
-                weight3 * av_ent_embeds2
+        embeds1 = weight1 * nv_ent_embeds1 + weight2 * rv_ent_embeds1 + weight3 * av_ent_embeds1
+        embeds2 = weight1 * nv_ent_embeds2 + weight2 * rv_ent_embeds2 + weight3 * av_ent_embeds2
 
-        hits1_12, mrr_12 = eva.valid(embeds1, embeds2, None, model.args.top_k, model.args.test_threads_num,
-                                    normalize=True)
-        return mrr_12
+        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
+        return mrr_12 if args.stop_metric == 'mrr' else hits1_12
 
 
 if __name__ == '__main__':
