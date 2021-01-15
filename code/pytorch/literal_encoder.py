@@ -69,7 +69,7 @@ def encode_literals(args, literal_list, word2vec, tokens_max_len=5, word2vec_dim
     dataloader = DataLoader(dataset, args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=args.pin_memory)
 
     device = torch.device(args.device)
-    model = AutoEncoder(literal_vector_list.shape[1], args.dim, activ=args.encoder_activ, normalize=args.encoder_normalize)
+    model = AutoEncoder(literal_vector_list.shape[1], args.embed_dim, activ=args.encoder_activ, normalize=args.encoder_normalize)
     model = model.to(device)
     criterion = nn.MSELoss()
     optimizer = get_optimizer(args.optimizer, model.parameters(), args.learning_rate)
@@ -135,19 +135,3 @@ def load_literal_vectors(folder):
             literal = line.strip('\n')
             literal_list.append(literal)
     return literal_list, literal_vectors
-
-
-if __name__ == '__main__':
-    args = load_args('./pytorch/args.json')
-    kgs = read_kgs_from_folder(args.training_data, args.dataset_division, args.alignment_module, False)
-    entity_local_name_dict = read_local_name(args.training_data, set(kgs.kg1.entities_id_dict.keys()), set(kgs.kg2.entities_id_dict.keys()))
-    cleaned_attribute_triples_list1, _, _ = clear_attribute_triples(kgs.kg1.local_attribute_triples_list)
-    cleaned_attribute_triples_list2, _, _ = clear_attribute_triples(kgs.kg2.local_attribute_triples_list)
-    value_list = [v for (_, _, v) in cleaned_attribute_triples_list1 + cleaned_attribute_triples_list2]
-    local_name_list = list(entity_local_name_dict.values())
-    literal_list = list(set(value_list + local_name_list))
-    print('literal num:', len(local_name_list), len(value_list), len(literal_list))
-    word2vec = read_word2vec(args.word2vec_path)
-    literal_vectors_mat = encode_literals(args, literal_list, word2vec)
-    save_literal_vectors(args.training_data, literal_list, literal_vectors_mat)
-    assert literal_vectors_mat.shape[0] == len(literal_list)

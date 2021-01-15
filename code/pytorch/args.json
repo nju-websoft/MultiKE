@@ -1,11 +1,9 @@
 {
   "device": "cpu",
-  "num_workers": 0,
-  "pin_memory": false,
 
-  "training_data": "../data/BootEA_DBP_WD_100K/",
-  "output": "../output/results/",
-  "word2vec_path": "../data/wiki-news-300d-1M.vec",
+  "training_data": "data/BootEA_DBP_WD_100K/",
+  "output": "output/results/",
+  "word2vec_path": "data/wiki-news-300d-1M.vec",
   "dataset_division": "631/",
 
   "alignment_module": "swapping",
@@ -16,36 +14,36 @@
   "retrain_literal_embeds": false,
   "literal_normalize": true,
 
-  "dim": 75,
+  "embed_dim": 75,
 
   "learning_rate": 0.001,
+  "relation_learning_rate": 0.005,
+  "itc_learning_rate": 0.004,
   "optimizer": "adagrad",
-  "max_epoch": 200,
-  "shared_learning_max_epoch": 200,
+  "epochs": 200,
+  "shared_learning_epochs": 200,
   "batch_size": 5000,
   "entity_batch_size": 5000,
   "attribute_batch_size": 5000,
 
-  "neg_triple_num": 10,
+  "num_neg_triples": 10,
   "neg_sampling":"truncated",
   "truncated_epsilon": 0.98,
   "truncated_freq": 20,
 
-  "batch_threads_num": 4,
-  "test_threads_num": 8,
+  "num_workers": 4,
+  "num_test_workers": 8,
+  "pin_memory": false,
 
   "start_valid": 100,
   "eval_freq": 10,
   "stop_metric": "mrr",
   "top_k": [1, 5, 10, 50],
-  "is_save": true,
   "orthogonal_weight": 2,
   "cv_name_weight": 1,
   "cv_weight": 1,
 
   "start_predicate_soft_alignment": 10,
   "predicate_soft_sim": 0.85,
-  "predicate_init_sim": 0.90,
-  "relation_learning_rate": 0.005,
-  "ITC_learning_rate": 0.004
+  "predicate_init_sim": 0.90
 }

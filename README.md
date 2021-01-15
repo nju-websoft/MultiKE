@@ -30,15 +30,13 @@ The raw datasets of DWY100K can also be found [here](https://github.com/nju-webs
 
 To run the experiments, use:
 
-    bash run.sh -m mode -d dataset_folder_path
+    python code/main.py -m mode -d dataset_path
 * mode: training mode, using either ITC or SSL;
-* dataset_folder_path: the folder path of dataset to run.
+* dataset_path: the path of dataset to run.
 
 For example, to run the experiments on DBP-WD with ITC mode, use:
 
-    bash run.sh -m ITC -d BootEA_DBP_WD_100K/
-
-> If you have any difficulty or question in running code or reproducing experimental results, please email to qhzhang.nju@gmail.com, zqsun.nju@gmail.com and whu@nju.edu.cn.
+    python code/main.py -m ITC -d data/BootEA_DBP_WD_100K/
 
 ## Citation
 If you use this model or code, please kindly cite it as follows:      

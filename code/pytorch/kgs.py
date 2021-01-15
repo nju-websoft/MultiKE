@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from base.kg import KG
@@ -71,14 +72,14 @@ class KGs:
         return entities if kg is None else entities[:, kg - 1]
 
 def read_kgs_from_folder(training_data_folder, division, mode, ordered):
-    kg1_relation_triples, _, _ = read_relation_triples(training_data_folder + 'rel_triples_1')
-    kg2_relation_triples, _, _ = read_relation_triples(training_data_folder + 'rel_triples_2')
-    kg1_attribute_triples, _, _ = read_attribute_triples(training_data_folder + 'attr_triples_1')
-    kg2_attribute_triples, _, _ = read_attribute_triples(training_data_folder + 'attr_triples_2')
+    kg1_relation_triples, _, _ = read_relation_triples(os.path.join(training_data_folder, 'rel_triples_1'))
+    kg2_relation_triples, _, _ = read_relation_triples(os.path.join(training_data_folder, 'rel_triples_2'))
+    kg1_attribute_triples, _, _ = read_attribute_triples(os.path.join(training_data_folder, 'attr_triples_1'))
+    kg2_attribute_triples, _, _ = read_attribute_triples(os.path.join(training_data_folder, 'attr_triples_2'))
 
-    train_links = read_links(training_data_folder + division + 'train_links')
-    valid_links = read_links(training_data_folder + division + 'valid_links')
-    test_links = read_links(training_data_folder + division + 'test_links')
+    train_links = read_links(os.path.join(training_data_folder, division, 'train_links'))
+    valid_links = read_links(os.path.join(training_data_folder, division, 'valid_links'))
+    test_links = read_links(os.path.join(training_data_folder, division, 'test_links'))
 
     kg1 = KG(kg1_relation_triples, kg1_attribute_triples)
     kg2 = KG(kg2_relation_triples, kg2_attribute_triples)

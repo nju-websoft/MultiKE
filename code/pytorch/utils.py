@@ -44,9 +44,8 @@ def task_divide(idx, n):
 
 
 def generate_out_folder(out_folder, training_data_path, div_path, method_name):
-    params = training_data_path.strip('/').split('/')
-    path = params[-1]
-    folder = out_folder + method_name + '/' + path + "/" + div_path + str(time.strftime("%Y%m%d%H%M%S")) + "/"
+    path = os.path.basename(os.path.dirname(training_data_path + '/'))
+    folder = os.path.join(out_folder, method_name, path, div_path, str(time.strftime("%Y%m%d%H%M%S")))
     os.makedirs(folder, exist_ok=True)
     print("results output folder:", folder)
     return folder
@@ -66,23 +65,23 @@ def save_embeddings(folder, kgs, ent_embeds, nv_ent_embeds, rv_ent_embeds, av_en
     if not os.path.exists(folder):
         os.makedirs(folder)
     if ent_embeds is not None:
-        np.save(folder + 'ent_embeds.npy', ent_embeds)
+        np.save(os.path.join(folder, 'ent_embeds.npy'), ent_embeds)
     if ent_embeds is not None:
-        np.save(folder + 'nv_ent_embeds.npy', nv_ent_embeds)
+        np.save(os.path.join(folder, 'nv_ent_embeds.npy'), nv_ent_embeds)
     if ent_embeds is not None:
-        np.save(folder + 'rv_ent_embeds.npy', rv_ent_embeds)
+        np.save(os.path.join(folder, 'rv_ent_embeds.npy'), rv_ent_embeds)
     if ent_embeds is not None:
-        np.save(folder + 'av_ent_embeds.npy', av_ent_embeds)
+        np.save(os.path.join(folder, 'av_ent_embeds.npy'), av_ent_embeds)
     if rel_embeds is not None:
-        np.save(folder + 'rel_embeds.npy', rel_embeds)
+        np.save(os.path.join(folder, 'rel_embeds.npy'), rel_embeds)
     if attr_embeds is not None:
-        np.save(folder + 'attr_embeds.npy', attr_embeds)
-    dict2file(folder + 'kg1_ent_ids', kgs.kg1.entities_id_dict)
-    dict2file(folder + 'kg2_ent_ids', kgs.kg2.entities_id_dict)
-    dict2file(folder + 'kg1_rel_ids', kgs.kg1.relations_id_dict)
-    dict2file(folder + 'kg2_rel_ids', kgs.kg2.relations_id_dict)
-    dict2file(folder + 'kg1_attr_ids', kgs.kg1.attributes_id_dict)
-    dict2file(folder + 'kg2_attr_ids', kgs.kg2.attributes_id_dict)
+        np.save(os.path.join(folder, 'attr_embeds.npy'), attr_embeds)
+    dict2file(os.path.join(folder, 'kg1_ent_ids'), kgs.kg1.entities_id_dict)
+    dict2file(os.path.join(folder, 'kg2_ent_ids'), kgs.kg2.entities_id_dict)
+    dict2file(os.path.join(folder, 'kg1_rel_ids'), kgs.kg1.relations_id_dict)
+    dict2file(os.path.join(folder, 'kg2_rel_ids'), kgs.kg2.relations_id_dict)
+    dict2file(os.path.join(folder, 'kg1_attr_ids'), kgs.kg1.attributes_id_dict)
+    dict2file(os.path.join(folder, 'kg2_attr_ids'), kgs.kg2.attributes_id_dict)
     print("Embeddings saved!")
 
 
@@ -101,8 +100,8 @@ def read_word2vec(file_path, vector_dimension=300):
 
 
 def read_local_name(folder_path, entities_set_1, entities_set_2):
-    entity_local_name_1 = read_local_name_file(folder_path + 'entity_local_name_1', entities_set_1)
-    entity_local_name_2 = read_local_name_file(folder_path + 'entity_local_name_2', entities_set_2)
+    entity_local_name_1 = read_local_name_file(os.path.join(folder_path, 'entity_local_name_1'), entities_set_1)
+    entity_local_name_2 = read_local_name_file(os.path.join(folder_path, 'entity_local_name_2'), entities_set_2)
     entity_local_name = entity_local_name_1
     entity_local_name.update(entity_local_name_2)
     print("total local names:", len(entity_local_name))

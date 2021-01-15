@@ -1,3 +1,4 @@
+import os
 import gc
 import time
 import math
@@ -216,9 +217,9 @@ class DataModel:
         self._generate_attribute_value_vectors()
 
         self.relation_name_dict1, self.attribute_name_dict1 = read_predicate_local_name_file(
-            args.training_data + 'predicate_local_name_1', set(self.kgs.kg1.relations_id_dict.keys()))
+            os.path.join(args.training_data, 'predicate_local_name_1'), set(self.kgs.kg1.relations_id_dict.keys()))
         self.relation_name_dict2, self.attribute_name_dict2 = read_predicate_local_name_file(
-            args.training_data + 'predicate_local_name_2', set(self.kgs.kg2.relations_id_dict.keys()))
+            os.path.join(args.training_data, 'predicate_local_name_2'), set(self.kgs.kg2.relations_id_dict.keys()))
 
         self.relation_id_alignment_set = None
         # self.train_relations1, self.train_relations2 = None, None
@@ -393,9 +394,9 @@ class DataModel:
         neighbors_num2 = int((1 - truncated_epsilon) * self.kgs.kg2.entities_num)
 
         entity_embeds1 = model.embeds(model, self.dataloader1)
-        self.neighbors1 = _generate_neighbours(entity_embeds1, self.kgs.all_entities[:, 0], neighbors_num1, self.args.batch_threads_num)
+        self.neighbors1 = _generate_neighbours(entity_embeds1, self.kgs.all_entities[:, 0], neighbors_num1, self.args.num_workers)
         entity_embeds2 = model.embeds(model, self.dataloader2)
-        self.neighbors2 = _generate_neighbours(entity_embeds2, self.kgs.all_entities[:, 1], neighbors_num2, self.args.batch_threads_num)
+        self.neighbors2 = _generate_neighbours(entity_embeds2, self.kgs.all_entities[:, 1], neighbors_num2, self.args.num_workers)
         ent_num = len(self.kgs.kg1.entities_list) + len(self.kgs.kg2.entities_list)
         end_time = time.time()
         print('neighbor dict:', len(self.neighbors1), type(self.neighbors2))
@@ -576,8 +577,3 @@ class TestDataset(Dataset):
         kg1_len = len(self.kg1)
         inputs = self.kg2[index - kg1_len] if index >= kg1_len else self.kg1[index]
         return inputs
-
-
-if __name__ == '__main__':
-    args = load_args('./pytorch/args.json')
-    data = DataModel(args)

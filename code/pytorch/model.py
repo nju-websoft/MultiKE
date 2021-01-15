@@ -239,7 +239,7 @@ class MultiKENet(nn.Module):
         num_kg1_ents = len(dataloader.dataset.kg1)
         embeds1 = embeds[:num_kg1_ents]
         embeds2 = embeds[num_kg1_ents:]
-        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
+        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.num_test_workers, normalize=True)
         return mrr_12 if args.stop_metric == 'mrr' else hits1_12
 
     @staticmethod
@@ -280,7 +280,7 @@ class MultiKENet(nn.Module):
         embeds1 = weight1 * nv_ent_embeds1 + weight2 * rv_ent_embeds1 + weight3 * av_ent_embeds1
         embeds2 = weight1 * nv_ent_embeds2 + weight2 * rv_ent_embeds2 + weight3 * av_ent_embeds2
 
-        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.test_threads_num, normalize=True)
+        hits1_12, mrr_12 = valid(embeds1, embeds2, None, args.top_k, args.num_test_workers, normalize=True)
         return mrr_12 if args.stop_metric == 'mrr' else hits1_12
 
 
